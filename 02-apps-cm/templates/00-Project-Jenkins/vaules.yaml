@@ -1,0 +1,26 @@
+name: jenkins
+image: jenkins/jenkins:jdk21
+
+replicas: 1
+
+pvcStorage: 10Gi
+
+requests:
+    memory: "512Mi"
+    cpu: "250m"
+limits:
+    memory: "1Gi"
+    cpu: "500m"
+
+portNumber: 8080
+nodePortNumber: 30080
+tunnelPortNumber: 50000
+
+volumeMounts:
+- name:  jenkins-pvc
+  mountPath:  /var/jenkins_home
+
+volumes:
+- name: jenkins-pvc
+persistentVolumeClaim:
+    claimName: jenkins-pvc

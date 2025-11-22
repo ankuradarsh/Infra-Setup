@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ .Values.Application.0.name }}
+  namespace: {{ .Values.Application.0.namespace }}
+spec:
+  project: {{ .Values.Application.0.project }}
+  syncPolicy:
+    automated:
+      prune: {{ .Values.prune }}
+      selfHeal: {{ .Values.selfHeal }}
+  destination:
+    namespace: {{ .Values.Application.0.namespace }}
+    server: {{ .Values.destinationServer}}
+  source:
+    repoURL: {{ .Values.Application.0.projectSource.url }}
+    path: {{ .Values.Application.0.projectSource.path }}
