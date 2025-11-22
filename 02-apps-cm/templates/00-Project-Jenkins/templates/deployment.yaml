@@ -25,12 +25,10 @@ spec:
             cpu: {{ .Values.limits.cpu }}
         ports:
         - containerPort: {{ .Values.portNumber }}
-          {{- with .Values.volumeMounts }}
-          volumeMounts:
-            {{ toYaml . | nindent 12 }}
-          {{- end }}
-
-      {{- with .Values.volumes }}
+        volumeMounts:
+        - name:  {{ .Values.name }}-pvc
+          mountPath:  /var/jenkins_home
       volumes:
-        {{ toYaml . | nindent 8 }}
-      {{- end }}
+      - name: {{ .Values.name }}-pvc
+        persistentVolumeClaim:
+          claimName: {{ .Values.name }}-pvc
