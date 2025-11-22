@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: {{ .Values.name }}
 spec:
-  replicas: {{ .Values.replicas | default 1 }}
+  {{ - toYaml .Values.replicas | nindent 2 }}
   selector:
     matchLabels:
       app: {{ .Values.name }}
@@ -24,13 +24,6 @@ spec:
             memory: {{ .Values.limits.memory }}
             cpu: {{ .Values.limits.cpu }}
         ports:
-        - containerPort: {{ .Values.port }}
-          {{- with .Values.volumeMounts }}
-          volumeMounts:
-            {{ toYaml . | nindent 12 }}
-          {{- end }}
-
-      {{- with .Values.volumes }}
-      volumes:
-        {{ toYaml . | nindent 8 }}
-      {{- end }}
+        - containerPort: {{ .Values.portNumber }}
+        {{ - toYaml .Values.volumeMounts | nindent 8 }}
+      {{ - toYaml .Values.volumes | nindent 6 }}
