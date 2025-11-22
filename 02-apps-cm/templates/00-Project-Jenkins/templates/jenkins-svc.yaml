@@ -8,15 +8,6 @@ spec:
     targetPort: {{ .Values.portNumber | int }}
     nodePort: {{ .Values.nodePortNumber | int }}
   type: NodePort
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ .Values.name }}-tunnel
-spec:
-  ports:
-  - port: {{ .Values.tunnelPortNumber | int }}
-    targetPort: {{ .Values.tunnelPortNumber | int }}
 
 
 # Note: Have to add in jenkins url & tunnel in Kubernetes cloud configuration
