@@ -4,7 +4,7 @@ metadata:
   name: {{ .Values.Application.1.name }}
   namespace: {{ .Values.Application.1.namespace }}
 spec:
-  project: {{ .Values.Application.1.project }}
+  project: {{ .Values.project }}
   syncPolicy:
     automated:
       prune: {{ .Values.prune }}

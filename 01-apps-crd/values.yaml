@@ -1,16 +1,15 @@
 destinationServer: https://kubernetes.default.svc
 selfHeal: true
 prune: true
+project: infrastructure
 Application:
   - name: jenkins-appofapps
     namespace: jenkins
-    project: jenkins
     projectSource: 
       url: https://github.com/ankuradarsh/Infra-Setup.git
       path: 02-apps-cm/templates/00-Project-Jenkins
   - name: sonarqube-appofapps
     namespace: sonarqube
-    project: sonarqube
     projectSource: 
       url: https://github.com/ankuradarsh/Infra-Setup.git
       path: 02-apps-cm/templates/01-Project-SonarQube
