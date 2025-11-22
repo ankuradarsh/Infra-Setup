@@ -6,10 +6,10 @@ replicas: 1
 pvcStorage: 10Gi
 
 requests:
-    memory: "512Mi"
+    memory: "256Mi"
     cpu: "250m"
 limits:
-    memory: "1Gi"
+    memory: "512Mi"
     cpu: "500m"
 
 portNumber: 8080
