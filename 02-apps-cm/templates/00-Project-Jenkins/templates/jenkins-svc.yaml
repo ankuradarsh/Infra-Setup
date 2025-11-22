@@ -7,6 +7,8 @@ spec:
   - port: {{ .Values.portNumber | int }}
     targetPort: {{ .Values.portNumber | int }}
     nodePort: {{ .Values.nodePortNumber | int }}
+  selector:
+    app: {{ .Values.name }}
   type: NodePort
 
 
