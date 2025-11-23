@@ -3,7 +3,7 @@ image: jenkins/jenkins:jdk21
 
 replicas: 2
 
-pvcStorage: 10Gi
+pvcStorage: 2Gi
 
 requests:
     memory: "256Mi"
