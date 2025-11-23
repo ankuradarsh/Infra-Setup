@@ -13,5 +13,10 @@ Application:
     projectSource: 
       url: https://github.com/ankuradarsh/Infra-Setup.git
       path: 02-apps-cm/templates/01-Project-SonarQube
+  - name: observability-appofapps
+    namespace: observability
+    projectSource: 
+      url: https://github.com/ankuradarsh/Infra-Setup.git
+      path: 02-apps-cm/templates/02-Project-Observability
 
 

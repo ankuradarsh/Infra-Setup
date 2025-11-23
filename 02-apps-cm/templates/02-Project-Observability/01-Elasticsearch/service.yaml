@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: observability
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 9200
+      targetPort: 9200
+      nodePort: 30200
+  selector:
+    app: elasticsearch
+  type: NodePort
