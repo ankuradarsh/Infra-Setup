@@ -18,6 +18,11 @@ spec:
           image: docker.elastic.co/kibana/kibana:8.10.2
           ports:
             - containerPort: 5601
-          env:
-            - name: ELASTICSEARCH_HOSTS
-              value: "http://elasticsearch.observability.svc.cluster.local:9200"
+          volumeMounts:
+            - name: kibana-config
+              mountPath: /usr/share/kibana/config/kibana.yml
+              subPath: kibana.yml
+      volumes:
+        - name: kibana-config
+          configMap:
+            name: kibana-config
