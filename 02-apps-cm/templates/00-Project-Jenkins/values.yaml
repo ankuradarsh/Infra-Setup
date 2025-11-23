@@ -1,7 +1,7 @@
 name: jenkins
 image: jenkins/jenkins:jdk21
 
-replicas: 1
+replicas: 2
 
 pvcStorage: 10Gi
 
