@@ -1,5 +1,5 @@
 name: jenkins
-image: jenkins/jenkins:jdk21
+image: jenkins/jenkins:jdk17
 
 replicas: 1
 
