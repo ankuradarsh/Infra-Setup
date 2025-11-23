@@ -7,6 +7,5 @@ data:
   kibana.yml: |
     server.host: "0.0.0.0"
     elasticsearch.hosts: ["http://elasticsearch.observability.svc.cluster.local:9200"]
-    elasticsearch.username: "elastic"
     # Elastic SA Token for Kibana
     elasticsearch.password: "AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS10b2tlbjpBSll5MkhldlRNZVRJWFFXVS1HbVJR"
