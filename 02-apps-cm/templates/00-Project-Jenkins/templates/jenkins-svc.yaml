@@ -4,9 +4,13 @@ metadata:
   name: {{ .Values.name }}
 spec:
   ports:
-  - port: {{ .Values.portNumber | int }}
+  - name: jenkins-http
+    port: {{ .Values.portNumber | int }}
     targetPort: {{ .Values.portNumber | int }}
     nodePort: {{ .Values.nodePortNumber | int }}
+  - name: jenkins-agent
+    port: {{ .Values.tunnelPortNumber | int }}
+    targetPort: {{ .Values.tunnelPortNumber | int }}
   selector:
     app: {{ .Values.name }}
   type: NodePort
@@ -14,4 +18,4 @@ spec:
 
 # Note: Have to add in jenkins url & tunnel in Kubernetes cloud configuration
 # http://jenkins.jenkins.svc.cluster.local:8080
-# jenkins-tunnel.jenkins.svc.cluster.local:50000
+# jenkins.jenkins.svc.cluster.local:50000

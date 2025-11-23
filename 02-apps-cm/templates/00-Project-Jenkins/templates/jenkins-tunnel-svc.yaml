@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ .Values.name }}-tunnel
-spec:
-  ports:
-  - port: {{ .Values.tunnelPortNumber | int }}
-    targetPort: {{ .Values.tunnelPortNumber | int }}
