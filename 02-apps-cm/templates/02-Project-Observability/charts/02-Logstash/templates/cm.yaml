@@ -12,7 +12,7 @@ data:
     }
     output {
       elasticsearch {
-        hosts => ["https://elasticsearch.observability.svc.cluster.local:9200"]
+        hosts => ["http://elasticsearch.observability.svc.cluster.local:9200"]
         index => "logs-%{+YYYY.MM.dd}"
       }
     }
