@@ -15,6 +15,6 @@ data:
         hosts => ["http://elasticsearch.observability.svc.cluster.local:9200"]
         index => "logs-%{+YYYY.MM.dd}"
         user => "elastic"
-        password => "m3lnyto3y_3pmOSE8*Qh"
+        password => "LO___JhIJb8qbWBp5KNz"
       }
     }
