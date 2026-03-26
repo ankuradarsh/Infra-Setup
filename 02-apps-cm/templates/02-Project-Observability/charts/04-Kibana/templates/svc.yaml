@@ -7,6 +7,6 @@ spec:
   type: NodePort
   ports:
     - port: 5601
-      nodePort: 30001
+      nodePort: 30200
   selector:
     app: kibana
