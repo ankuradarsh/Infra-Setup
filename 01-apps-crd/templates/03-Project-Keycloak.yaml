@@ -10,8 +10,8 @@ spec:
       prune: {{ .Values.prune }}
       selfHeal: {{ .Values.selfHeal }}
   destination:
-    namespace: {{ .Values.Application.2.namespace }}
+    namespace: {{ .Values.Application.3.namespace }}
     server: {{ .Values.destinationServer}}
   source:
-    repoURL: {{ .Values.Application.2.projectSource.url }}
-    path: {{ .Values.Application.2.projectSource.path }}
+    repoURL: {{ .Values.Application.3.projectSource.url }}
+    path: {{ .Values.Application.3.projectSource.path }}
