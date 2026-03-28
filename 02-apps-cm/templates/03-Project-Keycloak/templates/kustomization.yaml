@@ -4,4 +4,6 @@ kind: Kustomization
 namespace: keycloak
 
 resources:
-  - https://raw.githubusercontent.com/keycloak/keycloak-quickstarts/refs/heads/main/kubernetes/keycloak.yaml
+  - keycloak.yaml
+  - postgres.yaml
+  - service.yaml
