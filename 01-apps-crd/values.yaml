@@ -18,5 +18,10 @@ Application:
     projectSource: 
       url: https://github.com/ankuradarsh/Infra-Setup.git
       path: 02-apps-cm/templates/02-Project-Observability
+  - name: keycloak-appofapps
+    namespace: keycloak
+    projectSource: 
+      url: https://github.com/ankuradarsh/Infra-Setup.git
+      path: 02-apps-cm/templates/03-Project-Keycloak
 
 

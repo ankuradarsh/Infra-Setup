@@ -1,0 +1,3 @@
+apiVersion: v2
+name: 03-project-keycloak
+version: 0.0.1
