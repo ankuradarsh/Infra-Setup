@@ -1,4 +1,4 @@
-piVersion: apps/v1
+apiVersion: apps/v1
 # Use a stateful setup to ensure that for a rolling update Pods are restarted with a rolling strategy one-by-one.
 # This prevents losing in-memory information stored redundantly in two Pods.
 kind: StatefulSet
