@@ -6,6 +6,8 @@ metadata:
 data:
   kibana.yml: |
     server.host: "0.0.0.0"
-    elasticsearch.hosts: ["http://localhost:30200"]
+    elasticsearch.hosts: ["http://elasticsearch:9200"]
     # Elastic SA Token for Kibana
-    elasticsearch.password: "QUFFQUFXVnNZWE4wYVdNdmEybGlZVzVoTDJ0cFltRnVZUzEwYjJ0bGJqcEJTbGw1TWtobGRsUk5aVlJKV0ZGWFZTMUhiVkpSCg=="
+    # elasticsearch.password: "QUFFQUFXVnNZWE4wYVdNdmEybGlZVzVoTDJ0cFltRnVZUzEwYjJ0bGJqcEJTbGw1TWtobGRsUk5aVlJKV0ZGWFZTMUhiVkpSCg=="
+    elasticsearch.username: "elastic"
+    elasticsearch.password: "LO___JhIJb8qbWBp5KNz"
