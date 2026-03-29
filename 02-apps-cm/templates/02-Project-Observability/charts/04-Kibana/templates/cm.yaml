@@ -5,7 +5,7 @@ metadata:
   namespace: observability
 data:
   kibana.yml: |
-    server.host: "127.0.0.1"
-    elasticsearch.hosts: ["http://elasticsearch.observability.svc.cluster.local:9200"]
+    server.host: "localhost"
+    elasticsearch.hosts: ["http://localhost:30200"]
     # Elastic SA Token for Kibana
     elasticsearch.password: "QUFFQUFXVnNZWE4wYVdNdmEybGlZVzVoTDJ0cFltRnVZUzEwYjJ0bGJqcEJTbGw1TWtobGRsUk5aVlJKV0ZGWFZTMUhiVkpSCg=="
