@@ -4,8 +4,9 @@ metadata:
   name: logstash
   namespace: observability
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
     - port: 5044
+      nodePort: 30044
   selector:
     app: logstash
