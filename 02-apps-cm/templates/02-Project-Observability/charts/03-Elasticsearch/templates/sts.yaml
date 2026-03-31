@@ -29,6 +29,10 @@ spec:
           env:
             - name: discovery.type
               value: single-node
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                - secretKeyRef:
+                    - key: elasticsearchPassword
           volumeMounts:
             - name: elastic-data
               mountPath: /usr/share/elasticsearch/data
