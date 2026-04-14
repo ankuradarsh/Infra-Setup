@@ -10,5 +10,38 @@ data:
         paths:
           - /var/log/containers/*.log
 
+        # Decode JSON logs if containers output JSON
+        json.keys_under_root: true
+        json.add_error_key: true
+
+    # =========================
+    # KUBERNETES ENRICHMENT
+    # =========================
+    processors:
+      - add_kubernetes_metadata:
+          host: ${NODE_NAME}
+          matchers:
+            - logs_path:
+                logs_path: "/var/log/containers/"
+
+      # Clean fields (important for Kibana usability)
+      - drop_fields:
+          fields: ["agent", "ecs", "input", "host"]
+          ignore_missing: true
+
+      # Add cluster tag (VERY useful for multi-cluster later)
+      - add_fields:
+          target: ""
+          fields:
+            cluster: "k8s-prod"
+
+    # =========================
+    # OUTPUT (LOGSTASH)
+    # =========================
     output.logstash:
       hosts: ["logstash.observability.svc.cluster.local:5044"]
+
+    # =========================
+    # LOGGING
+    # =========================
+    logging.level: info
