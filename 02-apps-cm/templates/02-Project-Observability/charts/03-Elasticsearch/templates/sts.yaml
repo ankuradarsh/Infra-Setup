@@ -32,7 +32,8 @@ spec:
             - name: ELASTIC_PASSWORD
               valueFrom:
                 - secretKeyRef:
-                    - key: elasticsearchPassword
+                    - key: elasticsearch-secret
+                      value: password
           volumeMounts:
             - name: elastic-data
               mountPath: /usr/share/elasticsearch/data
