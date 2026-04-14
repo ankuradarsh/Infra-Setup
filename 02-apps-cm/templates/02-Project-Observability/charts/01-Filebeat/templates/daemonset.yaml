@@ -22,6 +22,8 @@ spec:
             - name: filebeat-config
               mountPath: /usr/share/filebeat/filebeat.yml
               subPath: filebeat.yml
+            - name: filebeat-data
+              mountPath: /usr/share/filebeat/data
       volumes:
         - name: varlog
           hostPath:
@@ -29,3 +31,5 @@ spec:
         - name: filebeat-config
           configMap:
             name: filebeat-config
+        - name: filebeat-data
+          emptyDir: {}
