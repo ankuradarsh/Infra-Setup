@@ -31,9 +31,9 @@ spec:
               value: single-node
             - name: ELASTIC_PASSWORD
               valueFrom:
-                - secretKeyRef:
-                    - name: elasticsearch-secret
-                      key: password
+                secretKeyRef:
+                  - name: elasticsearch-secret
+                    key: password
           volumeMounts:
             - name: elastic-data
               mountPath: /usr/share/elasticsearch/data
