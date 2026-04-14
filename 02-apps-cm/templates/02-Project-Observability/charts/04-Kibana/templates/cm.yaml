@@ -9,4 +9,4 @@ data:
     elasticsearch.hosts: ["http://elasticsearch.observability.svc.cluster.local:9200"]
     # Elastic SA Token for Kibana
     #elasticsearch.username: "elastic"
-    elasticsearch.serviceAccountToken: "AAEAAWVsYXN0aWMva2liYW5hL25ldy10b2tlbjpob2owc0E0TlRvRzVPUFhaWTMzeVd3"
+    elasticsearch.serviceAccountToken: "AAEAAWVsYXN0aWMva2liYW5hL2tpYmFuYS10b2tlbjpfdDhUZUFCUVRELS1BRHFzNUxZNnFB"
