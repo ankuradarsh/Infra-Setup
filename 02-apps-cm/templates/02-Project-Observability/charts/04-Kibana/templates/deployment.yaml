@@ -16,6 +16,12 @@ spec:
       containers:
         - name: kibana
           image: elastic/kibana:9.1.7
+          env:
+          - name: ELASTICSEARCH_SERVICE_ACCOUNT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: elastisearch-service-account-token
+                key: serviceAccountToken
           ports:
             - containerPort: 5601
           volumeMounts:
