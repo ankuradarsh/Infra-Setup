@@ -16,14 +16,19 @@ spec:
       containers:
         - name: kibana
           image: elastic/kibana:9.1.7
-          env:
-          - name: ELASTICSEARCH_SERVICE_ACCOUNT_TOKEN
-            valueFrom:
-              secretKeyRef:
-                name: elastisearch-service-account-token
-                key: serviceAccountToken
           ports:
             - containerPort: 5601
+          env:
+            - name: ELASTICSEARCH_HOSTS
+              value: "http://elasticsearch.observability.svc.cluster.local:9200"
+            - name: ELASTICSEARCH_SERVICEACCOUNTTOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: kibana-es-token
+                  key: token
+            - name: SERVER_HOST
+              value: "0.0.0.0"
+
           volumeMounts:
             - name: kibana-config
               mountPath: /usr/share/kibana/config/kibana.yml

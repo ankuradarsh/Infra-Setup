@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kibana-token-sa
+  namespace: observability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kibana-token-role
+  namespace: observability
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create","delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kibana-token-binding
+  namespace: observability
+subjects:
+- kind: ServiceAccount
+  name: kibana-token-sa
+roleRef:
+  kind: Role
+  name: kibana-token-role
+  apiGroup: rbac.authorization.k8s.io

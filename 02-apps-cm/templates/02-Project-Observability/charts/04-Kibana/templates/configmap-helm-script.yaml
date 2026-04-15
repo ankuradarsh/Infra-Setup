@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-helm-scripts
+  namespace: observability
+data:
+  manage-es-token.js: |
+    const https = require('https');
+    const fs = require('fs');
+
+    function getEnvVar(name) {
+      if (!process.env[name]) {
+        throw new Error(name + ' missing')
+      }
+      return process.env[name]
+    }
+
+    const esUrl = 'https://elasticsearch.observability.svc.cluster.local:9200/_security/service/elastic/kibana/credential/token/kibana';
+
+    const esAuth = getEnvVar('ELASTICSEARCH_USERNAME') + ':' + getEnvVar('ELASTICSEARCH_PASSWORD');
+    const esCa = fs.readFileSync(getEnvVar('ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES'));
+
+    const k8sHost = process.env.KUBERNETES_SERVICE_HOST;
+    const k8sPort = process.env.KUBERNETES_SERVICE_PORT_HTTPS;
+    const namespace = "observability";
+
+    const k8sToken = fs.readFileSync('/run/secrets/kubernetes.io/serviceaccount/token');
+    const k8sCa = fs.readFileSync('/run/secrets/kubernetes.io/serviceaccount/ca.crt');
+
+    function request(url, options, body) {
+      return new Promise((resolve, reject) => {
+        const req = https.request(url, options, res => {
+          let data = '';
+          res.on('data', d => data += d);
+          res.on('end', () => res.statusCode >= 200 && res.statusCode < 300 ? resolve(data) : reject(data));
+        });
+        if (body) req.write(body);
+        req.end();
+      });
+    }
+
+    async function create() {
+      await request(esUrl, { method: 'DELETE', auth: esAuth, ca: esCa }).catch(()=>{});
+      const res = await request(esUrl, { method: 'POST', auth: esAuth, ca: esCa });
+      const token = JSON.parse(res).token.value;
+
+      const secret = JSON.stringify({
+        apiVersion: "v1",
+        kind: "Secret",
+        metadata: { name: "kibana-es-token", namespace },
+        type: "Opaque",
+        data: { token: Buffer.from(token).toString('base64') }
+      });
+
+      await request(`https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets`,
+        { method: 'POST', headers: { Authorization: `Bearer ${k8sToken}` }, ca: k8sCa },
+        secret
+      );
+    }
+
+    async function clean() {
+      await request(esUrl, { method: 'DELETE', auth: esAuth, ca: esCa });
+      await request(`https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets/kibana-es-token`,
+        { method: 'DELETE', headers: { Authorization: `Bearer ${k8sToken}` }, ca: k8sCa }
+      );
+    }
+
+    const cmd = process.argv[2];
+    if (cmd === 'create') create().catch(e => { console.error(e); process.exit(1); });
+    else if (cmd === 'clean') clean().catch(e => { console.error(e); process.exit(1); });
