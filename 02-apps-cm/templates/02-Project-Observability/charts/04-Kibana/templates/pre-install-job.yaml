@@ -31,7 +31,7 @@ spec:
         # - name: certs
         #   mountPath: /usr/share/kibana/config/certs
       volumes:
-      - name: helm-scripts
+      - name: scripts
         configMap:
           name: kibana-helm-scripts
           defaultMode: 0755
