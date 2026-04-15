@@ -15,14 +15,11 @@ spec:
         args: ["/usr/share/kibana/helm-scripts/manage-es-token.js","create"]
         env:
         - name: ELASTICSEARCH_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: elasticsearch-credentials
-              key: username
+          value: elastic
         - name: ELASTICSEARCH_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: elasticsearch-credentials
+              name: elasticsearch-secret
               key: password
         # - name: ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES
         #   value: /usr/share/kibana/config/certs/ca.crt
