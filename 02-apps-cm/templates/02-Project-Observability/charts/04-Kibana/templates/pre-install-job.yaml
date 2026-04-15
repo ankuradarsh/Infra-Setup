@@ -23,6 +23,8 @@ spec:
             secretKeyRef:
               name: elasticsearch-secret
               key: password
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch.observability.svc.cluster.local:9200/_security/service/elastic/kibana/credential/token/kibana"
         # - name: ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES
         #   value: /usr/share/kibana/config/certs/ca.crt
         volumeMounts:

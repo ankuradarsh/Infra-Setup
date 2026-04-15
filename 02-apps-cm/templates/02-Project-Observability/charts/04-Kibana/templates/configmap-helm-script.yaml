@@ -5,21 +5,36 @@ metadata:
   namespace: observability
 data:
   manage-es-token.js: |
+    const http = require('http');
     const https = require('https');
     const fs = require('fs');
 
-    function getEnvVar(name) {
+    function getEnvVar(name, required = true) {
       if (!process.env[name]) {
-        throw new Error(name + ' missing')
+        if (required) throw new Error(name + ' missing');
+        return null;
       }
-      return process.env[name]
+      return process.env[name];
     }
 
-    const esUrl = 'https://elasticsearch.observability.svc.cluster.local:9200/_security/service/elastic/kibana/credential/token/kibana';
+    // Detect protocol
+    const esUrl = getEnvVar('ELASTICSEARCH_URL');
+    const isHttps = esUrl.startsWith('https://');
+
+    const client = isHttps ? https : http;
 
     const esAuth = getEnvVar('ELASTICSEARCH_USERNAME') + ':' + getEnvVar('ELASTICSEARCH_PASSWORD');
-    const esCa = fs.readFileSync(getEnvVar('ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES'));
 
+    // Optional CA
+    let esCa = undefined;
+    if (isHttps) {
+      const caPath = getEnvVar('ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES', false);
+      if (caPath) {
+        esCa = fs.readFileSync(caPath);
+      }
+    }
+
+    // Kubernetes API
     const k8sHost = process.env.KUBERNETES_SERVICE_HOST;
     const k8sPort = process.env.KUBERNETES_SERVICE_PORT_HTTPS;
     const namespace = "observability";
@@ -29,19 +44,32 @@ data:
 
     function request(url, options, body) {
       return new Promise((resolve, reject) => {
-        const req = https.request(url, options, res => {
+        const req = client.request(url, options, res => {
           let data = '';
           res.on('data', d => data += d);
-          res.on('end', () => res.statusCode >= 200 && res.statusCode < 300 ? resolve(data) : reject(data));
+          res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              resolve(data);
+            } else {
+              reject(`Status: ${res.statusCode}, Body: ${data}`);
+            }
+          });
         });
+
+        req.on('error', reject);
+
         if (body) req.write(body);
         req.end();
       });
     }
 
     async function create() {
+      console.log("Deleting old token (if exists)");
       await request(esUrl, { method: 'DELETE', auth: esAuth, ca: esCa }).catch(()=>{});
+
+      console.log("Creating new token");
       const res = await request(esUrl, { method: 'POST', auth: esAuth, ca: esCa });
+
       const token = JSON.parse(res).token.value;
 
       const secret = JSON.stringify({
@@ -52,19 +80,47 @@ data:
         data: { token: Buffer.from(token).toString('base64') }
       });
 
-      await request(`https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets`,
-        { method: 'POST', headers: { Authorization: `Bearer ${k8sToken}` }, ca: k8sCa },
+      console.log("Creating K8s secret");
+      await request(
+        `https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${k8sToken}`,
+            'Content-Type': 'application/json'
+          },
+          ca: k8sCa
+        },
         secret
       );
+
+      console.log("Done");
     }
 
     async function clean() {
+      console.log("Deleting token from Elasticsearch");
       await request(esUrl, { method: 'DELETE', auth: esAuth, ca: esCa });
-      await request(`https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets/kibana-es-token`,
-        { method: 'DELETE', headers: { Authorization: `Bearer ${k8sToken}` }, ca: k8sCa }
+
+      console.log("Deleting K8s secret");
+      await request(
+        `https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets/kibana-es-token`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${k8sToken}`
+          },
+          ca: k8sCa
+        }
       );
     }
 
     const cmd = process.argv[2];
-    if (cmd === 'create') create().catch(e => { console.error(e); process.exit(1); });
-    else if (cmd === 'clean') clean().catch(e => { console.error(e); process.exit(1); });
+
+    if (cmd === 'create') {
+      create().catch(e => { console.error(e); process.exit(1); });
+    } else if (cmd === 'clean') {
+      clean().catch(e => { console.error(e); process.exit(1); });
+    } else {
+      console.error("Unknown command");
+      process.exit(1);
+    }
