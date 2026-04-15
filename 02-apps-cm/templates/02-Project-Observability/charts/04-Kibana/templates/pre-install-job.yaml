@@ -10,7 +10,7 @@ spec:
       restartPolicy: Never
       containers:
       - name: create-token
-        image: node:18-alpine
+        image: node:20-alpine
         command: ["node"]
         args:
           - /helm-scripts/manage-es-token.js
