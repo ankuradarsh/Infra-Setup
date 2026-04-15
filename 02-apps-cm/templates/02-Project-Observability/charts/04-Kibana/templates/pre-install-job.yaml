@@ -13,7 +13,7 @@ spec:
         image: node:18-alpine
         command: ["node"]
         args:
-          - /scripts/manage-es-token.js
+          - /helm-scripts/manage-es-token.js
           - create
         env:
         - name: ELASTICSEARCH_USERNAME
