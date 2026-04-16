@@ -1,27 +1,31 @@
+# Basic scaling for small setup
+deploymentMode: SimpleScalable
 backend:
   replicas: 1
-
-ui:
-  enabled: true
-
 read:
   replicas: 1
-
 write:
   replicas: 1
 
+# Enable nice Loki UI
+ui:
+  enabled: true
 
-# Completely disable self-monitoring and the problematic CRDs
+# Monitoring - safe parts only (no self-monitoring / agent operator)
 monitoring:
   selfMonitoring:
     enabled: false
   serviceMonitor:
-    enabled: false     # disable if you don't use Prometheus Operator
+    enabled: false
   dashboards:
-    enabled: true      # safe to keep
+    enabled: true
   rules:
-    enabled: true      # safe to keep (PrometheusRule)
+    enabled: true
 
-# Extra safety - disable the subchart that brings the big CRDs
+# Extra safety to prevent any grafana-agent-operator subchart from activating
 grafana-agent-operator:
+  enabled: false
+
+# Optional: Reduce CRD size issues further
+rollout_operator:
   enabled: false
