@@ -1,5 +1,4 @@
-# Basic scaling for small setup
-deploymentMode: SimpleScalable
+
 backend:
   replicas: 1
 read:
