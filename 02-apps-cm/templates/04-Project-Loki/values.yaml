@@ -32,4 +32,9 @@ loki:
     type: filesystem
     filesystem:
       directory: /var/loki/chunks
+    # ← Add this section (required by the chart in v6.x)
+    bucketNames:
+      chunks: "chunks"   # Can be any string; "chunks" is the conventional default for filesystem
+      ruler: "ruler"     # Recommended (even if not using ruler)
+      admin: "admin"     # Recommended for newer Loki features
   useTestSchema: true
