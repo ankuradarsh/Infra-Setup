@@ -11,9 +11,17 @@ write:
   replicas: 1
 
 
-# FOR one or more objects failed to apply, reason: CustomResourceDefinition.apiextensions.k8s.io "grafanaagents.monitoring.grafana.com" is invalid: metadata.annotations: Too long: may not be more than 262144 bytes
+# Completely disable self-monitoring and the problematic CRDs
 monitoring:
   selfMonitoring:
     enabled: false
-    grafanaAgent:
-      installOperator: false
+  serviceMonitor:
+    enabled: false     # disable if you don't use Prometheus Operator
+  dashboards:
+    enabled: true      # safe to keep
+  rules:
+    enabled: true      # safe to keep (PrometheusRule)
+
+# Extra safety - disable the subchart that brings the big CRDs
+grafana-agent-operator:
+  enabled: false
