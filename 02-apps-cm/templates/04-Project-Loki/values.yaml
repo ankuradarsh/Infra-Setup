@@ -1,0 +1,11 @@
+backend:
+  replicas: 1
+
+ui:
+  enabled: true
+
+read:
+  replicas: 1
+
+write:
+  replicas: 1
