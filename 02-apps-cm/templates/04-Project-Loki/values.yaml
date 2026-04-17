@@ -1,3 +1,4 @@
+deploymentMode: SingleBinary
 loki:
   auth_enabled: true
   commonConfig:
@@ -47,14 +48,18 @@ monitoring:
     
 write:
   replicas: 1
+  enabled: false
 
 read:
   replicas: 1
+  enabled: false
   
 backend:
   replicas: 1
+  enabled: false
   
 singleBinary:
+  enabled: true
   replicas: 1
   
 
