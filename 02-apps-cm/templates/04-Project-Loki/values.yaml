@@ -1,20 +1,99 @@
-deploymentMode: SingleBinary
-
-singleBinary:
-  enabled: true
+loki:
+  auth_enabled: true
+  commonConfig:
+    path_prefix: /var/loki
+    replication_factor: 1
+  storage:
+    bucketNames:
+      chunks: chunks
+      ruler: ruler
+      admin: admin
+    type: filesystem
+    filesystem:
+      chunks_directory: /var/loki/chunks
+      rules_directory: /var/loki/rules
+  
+  
+test:
+  enabled: false
+  
+monitoring:
+  # Dashboards for monitoring Loki
+  dashboards:
+    enabled: true
+    namespace: observability
+    annotations: {}
+    labels:
+      grafana_dashboard: "1"
+  rules:
+    enabled: true
+    alerting: true
+    namespace: observability
+    additionalGroups: []
+    # - name: additional-loki-rules
+    #   rules:
+    #     - record: job:loki_request_duration_seconds_bucket:sum_rate
+    #       expr: sum(rate(loki_request_duration_seconds_bucket[1m])) by (le, job)
+    #     - record: job_route:loki_request_duration_seconds_bucket:sum_rate
+    #       expr: sum(rate(loki_request_duration_seconds_bucket[1m])) by (le, job, route)
+    #     - record: node_namespace_pod_container:container_cpu_usage_seconds_total:sum_rate
+    #       expr: sum(rate(container_cpu_usage_seconds_total[1m])) by (node, namespace, pod, container)
+  serviceMonitor:
+    enabled: true
+  selfMonitoring:
+    enabled: true
+  lokiCanary:
+    enabled: true
+    
+write:
   replicas: 1
 
-write:
-  enabled: false
 read:
-  enabled: false
+  replicas: 1
+  
 backend:
-  enabled: false
+  replicas: 1
+  
+singleBinary:
+  replicas: 1
+  
 
-gateway:
-  enabled: false
+minio:
+  enabled: true
+  replicas: 1
+  # Minio requires 2 to 16 drives for erasure code (drivesPerNode * replicas)
+  # https://docs.min.io/docs/minio-erasure-code-quickstart-guide
+  # Since we only have 1 replica, that means 2 drives must be used.
+  drivesPerNode: 2
+  rootUser: enterprise-logs
+  rootPassword: supersecret
+  buckets:
+    - name: chunks
+      policy: none
+      purge: false
+    - name: ruler
+      policy: none
+      purge: false
+    - name: admin
+      policy: none
+      purge: false
+  persistence:
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
 
-loki:
-  auth_enabled: false
-  commonConfig:
-    replication_factor: 1
+sidecar:
+  image:
+    repository: kiwigrid/k8s-sidecar
+    tag: 1.24.3
+    pullPolicy: IfNotPresent
+  securityContext: {}
+  skipTlsVerify: false
+  enableUniqueFilenames: false
+  readinessProbe: {}
+  livenessProbe: {}
+  rules:
+    enabled: true
+    logLevel: INFO
