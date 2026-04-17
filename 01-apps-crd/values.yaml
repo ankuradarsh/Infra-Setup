@@ -24,15 +24,15 @@ Application:
       url: https://github.com/ankuradarsh/Infra-Setup.git
       path: 02-apps-cm/templates/03-Project-Keycloak
   - name: loki-appofapps
-    namespace: observability
+    namespace: loki
     projectSource: 
       url: https://github.com/ankuradarsh/Infra-Setup.git
       path: 02-apps-cm/templates/04-Project-Loki
-  - name: promtail-appofapps
+  - name: grafana-alloy-appofapps
     namespace: observability
     projectSource: 
       url: https://github.com/ankuradarsh/Infra-Setup.git
-      path: 02-apps-cm/templates/05-Project-Promtail
+      path: 02-apps-cm/templates/05-Project-Alloy
   - name: grafana-appofapps
     namespace: observability
     projectSource: 
