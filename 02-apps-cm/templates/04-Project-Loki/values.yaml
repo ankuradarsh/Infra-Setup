@@ -1,6 +1,9 @@
 loki:
   loki:
     deploymentMode: SingleBinary
+    # deploymentMode: Distributed
+    # deploymentMode: Monolithic
+    # deploymentMode: SimpleScalable
     auth_enabled: false
     commonConfig:
       replication_factor: 1
@@ -13,22 +16,26 @@ loki:
       filesystem:
         directory: /var/loki/chunks
     useTestSchema: true
-
+    ui:
+      enabled: true
   singleBinary:
     enabled: true
     replicas: 1
+  
+  tracing:
+    enabled: true
 
   write:
-    enabled: true
-    replicas: 1
+    enabled: false
+    replicas: 0
 
   read:
-    enabled: true
-    replicas: 1
+    enabled: false
+    replicas: 0
 
   backend:
-    enabled: true
-    replicas: 1
+    enabled: false
+    replicas: 0
 
   chunksCache:
     enabled: false
