@@ -1,11 +1,9 @@
-# Deployment mode: SingleBinary (simple), SimpleScalable (medium), Distributed (large)
 deploymentMode: SingleBinary
 
-# Number of replicas
 singleBinary:
   replicas: 1
 
-# Component replicas
+# Disable the other modes completely
 write:
   replicas: 0
 read:
@@ -13,28 +11,29 @@ read:
 backend:
   replicas: 0
 
-# Caching
 chunksCache:
   enabled: false
 resultsCache:
   enabled: false
 
-# Helm test
 test:
   enabled: false
 
-# All loki settings combined under one key
 loki:
   auth_enabled: false
+
   commonConfig:
     replication_factor: 1
+
   storage:
     type: filesystem
     filesystem:
       directory: /var/loki/chunks
-    # ← Add this section (required by the chart in v6.x)
-    bucketNames:
-      chunks: "chunks"   # Can be any string; "chunks" is the conventional default for filesystem
-      ruler: "ruler"     # Recommended (even if not using ruler)
-      admin: "admin"     # Recommended for newer Loki features
+
+  # ← BucketNames must be at this level (sibling of "storage")
+  bucketNames:
+    chunks: "chunks"
+    ruler: "ruler"
+    admin: "admin"
+
   useTestSchema: true
