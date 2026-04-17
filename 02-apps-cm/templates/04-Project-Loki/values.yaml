@@ -1,8 +1,11 @@
-deploymentMode: SingleBinary
+# Deployment mode: SingleBinary (simple), SimpleScalable (medium), Distributed (large)
+# deploymentMode: SingleBinary
 
-singleBinary:
-  replicas: 1
+# Number of replicas
+# singleBinary:
+#   replicas: 1
 
+# Component replicas (keep at 0 for SingleBinary mode)
 write:
   replicas: 1
 read:
@@ -10,23 +13,31 @@ read:
 backend:
   replicas: 1
 
-test:
-  enabled: false
-
-loki:
+ui:
   enabled: true
-  isDefault: true
-  url: http://{{(include "loki.serviceName" .)}}:{{ .Values.loki.service.port }}
-  readinessProbe:
-    httpGet:
-      path: /ready
-      port: http-metrics
-    initialDelaySeconds: 45
-  livenessProbe:
-    httpGet:
-      path: /ready
-      port: http-metrics
-    initialDelaySeconds: 45
-  datasource:
-    jsonData: "{}"
-    uid: ""
+  gateway:
+    enabled: false
+# Caching
+# chunksCache:
+#   enabled: false
+# resultsCache:
+#   enabled: false
+
+# Helm test
+# test:
+#   enabled: false
+
+# loki:
+#   auth_enabled: false
+#   commonConfig:
+#     replication_factor: 1
+#   storage:
+#     type: filesystem
+#     filesystem:
+#       directory: /var/loki/chunks
+#     # ← Add this section (required by the chart in v6.x)
+#     bucketNames:
+#       chunks: "chunks"   # Can be any string; "chunks" is the conventional default for filesystem
+#       ruler: "ruler"     # Recommended (even if not using ruler)
+#       admin: "admin"     # Recommended for newer Loki features
+#   useTestSchema: true
