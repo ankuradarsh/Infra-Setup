@@ -110,6 +110,10 @@ loki:
     replication_factor: 1
   storage:
     type: filesystem
+    bucketNames:
+      chunks: chunks
+      ruler: ruler
+      admin: admin
     filesystem:
       directory: /var/loki/chunks
   useTestSchema: true
