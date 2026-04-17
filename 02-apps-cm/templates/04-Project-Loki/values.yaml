@@ -25,3 +25,27 @@ persistence:
   enabled: true
   size: 10Gi
   storageClass: ""
+
+
+write:
+  enabled: false
+read:
+  enabled: false
+backend:
+  enabled: false
+distributor:
+  enabled: false
+ingester:
+  enabled: false
+querier:
+  enabled: false
+query_scheduler:
+  enabled: false
+index_gateway:
+  enabled: false
+compactor:
+  enabled: false
+ruler:
+  enabled: false
+gateway:
+  enabled: false
