@@ -15,6 +15,7 @@ loki:
         prefix: index_
         period: 24h
 singleBinary:
+  enabled: true
   replicas: 1
 persistence:
   enabled: true
