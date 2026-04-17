@@ -1,20 +1,5 @@
 deploymentMode: SingleBinary
 
-loki:
-  auth_enabled: false
-  commonConfig:
-    replication_factor: 1
-  storage:
-    type: filesystem
-    filesystem:
-      directory: /var/loki/chunks
-  useTestSchema: true
-
-chunksCache:
-  enabled: true
-resultsCache:
-  enabled: true
-
 singleBinary:
   enabled: true
   replicas: 1
@@ -26,5 +11,10 @@ read:
 backend:
   enabled: false
 
-test:
+gateway:
   enabled: false
+
+loki:
+  auth_enabled: false
+  commonConfig:
+    replication_factor: 1
