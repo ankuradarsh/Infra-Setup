@@ -1,3 +1,6 @@
+singleBinary:
+  enabled: true
+  replicas: 1
 loki:
   auth_enabled: false
   storage:
@@ -18,3 +21,7 @@ loki:
     replication_factor: 1
   compactor:
     shared_store: filesystem
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: ""
