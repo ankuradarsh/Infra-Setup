@@ -23,8 +23,8 @@ loki:
     enabled: true
     replicas: 1
   
-  tracing:
-    enabled: true
+  # tracing:
+  #   enabled: true
 
   write:
     enabled: false
