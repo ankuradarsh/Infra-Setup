@@ -14,7 +14,8 @@ loki:
         ruler: ruler
         admin: admin
       filesystem:
-        directory: /var/loki/chunks
+        chunks_directory: /var/loki/chunks
+        rules_directory: /var/loki/rules
     useTestSchema: true
     ui:
       enabled: true
