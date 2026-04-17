@@ -3,37 +3,30 @@ deploymentMode: SingleBinary
 singleBinary:
   replicas: 1
 
-# Disable the other modes completely
 write:
-  replicas: 0
+  replicas: 1
 read:
-  replicas: 0
+  replicas: 1
 backend:
-  replicas: 0
-
-chunksCache:
-  enabled: false
-resultsCache:
-  enabled: false
+  replicas: 1
 
 test:
   enabled: false
 
 loki:
-  auth_enabled: false
-
-  commonConfig:
-    replication_factor: 1
-
-  storage:
-    type: filesystem
-    filesystem:
-      directory: /var/loki/chunks
-
-  # ← BucketNames must be at this level (sibling of "storage")
-  bucketNames:
-    chunks: "chunks"
-    ruler: "ruler"
-    admin: "admin"
-
-  useTestSchema: true
+  enabled: true
+  isDefault: true
+  url: http://{{(include "loki.serviceName" .)}}:{{ .Values.loki.service.port }}
+  readinessProbe:
+    httpGet:
+      path: /ready
+      port: http-metrics
+    initialDelaySeconds: 45
+  livenessProbe:
+    httpGet:
+      path: /ready
+      port: http-metrics
+    initialDelaySeconds: 45
+  datasource:
+    jsonData: "{}"
+    uid: ""
