@@ -11,7 +11,8 @@ spec:
       selfHeal: {{ .Values.selfHeal }}
     syncOptions:
       - CreateNamespace=true
-      - ServerSideApply=true
+      # - ServerSideApply=true
+      - RespectIgnoreDifferences=true
   destination:
     namespace: {{ .Values.Application.4.namespace }}
     server: {{ .Values.destinationServer}}
