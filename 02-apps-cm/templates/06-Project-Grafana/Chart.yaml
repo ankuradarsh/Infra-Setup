@@ -3,5 +3,5 @@ name: 05-project-grafana
 version: 0.1.0
 dependencies:
   - name: grafana
-    version: 12.1.0
+    version: 11.3.9
     repository: https://grafana-community.github.io/helm-charts
