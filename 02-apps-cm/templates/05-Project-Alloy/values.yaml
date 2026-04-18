@@ -1,5 +1,5 @@
 alloy:
-  configMap:
+  config:
     create: true
     content: |
       // ========================
