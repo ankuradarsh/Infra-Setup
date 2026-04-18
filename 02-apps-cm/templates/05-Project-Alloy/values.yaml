@@ -1,16 +1,3 @@
-# Name Overrides
-nameOverride: null
-fullnameOverride: null
-
-global:
-  image:
-    registry: ""
-    pullSecrets: []
-
-# Alloy CRD Management
-crds:
-  create: true
-
 # Alloy-specific configuration
 alloy:
   configMap:
@@ -91,31 +78,3 @@ alloy:
       # tempo.push "tempo" {
       #   endpoint = "http://tempo-dev-distributed-distributor.tempo-dev.svc:3200/api/traces"
       # }
-
-  # Additional Configuration
-  clustering:
-    enabled: false
-    name: ""
-  storagePath: /tmp/alloy
-  listenAddr: 0.0.0.0
-  listenPort: 12345
-  listenScheme: HTTP
-  uiPathPrefix: /
-  enableReporting: true
-
-  extraEnv: []
-  envFrom: []
-  extraArgs: []
-  extraPorts: []
-
-  mounts:
-    varlog: true
-    dockercontainers: true
-    extra: []
-
-  resources: {} # Set resource limits/requests here if needed
-
-service:
-  enabled: true
-  type: NodePort
-  nodePort: 30101
