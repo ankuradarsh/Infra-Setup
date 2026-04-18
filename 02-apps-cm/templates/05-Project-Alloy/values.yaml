@@ -115,62 +115,7 @@ alloy:
 
   resources: {} # Set resource limits/requests here if needed
 
-controller:
-  type: 'daemonset'
-  replicas: 1
-  extraAnnotations: {}
-  hostNetwork: false
-  dnsPolicy: ClusterFirst
-  terminationGracePeriodSeconds: 30
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-  updateStrategy: {}
-  priorityClassName: ''
-  podAnnotations: {}
-  podLabels: {}
-
-  podDisruptionBudget:
-    enabled: false
-
-  autoscaling:
-    enabled: false
-
 service:
   enabled: true
-  type: ClusterIP
-  nodePort: 31128
-  clusterIP: ''
-  internalTrafficPolicy: Cluster
-  annotations: {}
-
-serviceAccount:
-  create: true
-  additionalLabels: {}
-  annotations: {}
-  name: grafana-alloy-service-account
-
-rbac:
-  create: true
-
-configReloader:
-  enabled: true
-  image:
-    registry: "ghcr.io"
-    repository: jimmidyson/configmap-reload
-    tag: v0.12.0
-  resources:
-    requests:
-      cpu: "1m"
-      memory: "5Mi"
-
-# ingress:
-#   enabled: false
-#   annotations: {}
-#   labels: {}
-#   path: /
-#   faroPort: 12347
-#   pathType: Prefix
-#   hosts:
-#     - chart-example.local
-#   tls: []
+  type: NodePort
+  nodePort: 30101
