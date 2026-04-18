@@ -29,12 +29,12 @@ Application:
       url: https://github.com/ankuradarsh/Infra-Setup.git
       path: 02-apps-cm/templates/04-Project-Loki
   - name: grafana-alloy-appofapps
-    namespace: observability
+    namespace: monitoring
     projectSource: 
       url: https://github.com/ankuradarsh/Infra-Setup.git
       path: 02-apps-cm/templates/05-Project-Alloy
   - name: grafana-appofapps
-    namespace: observability
+    namespace: monitoring
     projectSource: 
       url: https://github.com/ankuradarsh/Infra-Setup.git
       path: 02-apps-cm/templates/06-Project-Grafana
