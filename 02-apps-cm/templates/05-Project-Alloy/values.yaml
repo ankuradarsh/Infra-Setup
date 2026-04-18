@@ -1,176 +1,80 @@
-# Name Overrides
-nameOverride: null
-fullnameOverride: null
-
-global:
-  image:
-    registry: ""
-    pullSecrets: []
-
-# Alloy CRD Management
-crds:
-  create: true
-
 # Alloy-specific configuration
 alloy:
   configMap:
     create: true
-    content: |
-      # Kubernetes Discovery Configuration
-      discovery.kubernetes "pod" {
-        role = "pod"
+  content: |
+    # Kubernetes Discovery Configuration
+    discovery.kubernetes "pod" {
+      role = "pod"
+    }
+
+    # Relabel Configuration for Pod Logs
+    discovery.relabel "pod_logs" {
+      targets = discovery.kubernetes.pod.targets
+
+      rule { source_labels = ["__meta_kubernetes_namespace"], action = "replace", target_label = "namespace" }
+      rule { source_labels = ["__meta_kubernetes_pod_name"], action = "replace", target_label = "pod" }
+      rule { source_labels = ["__meta_kubernetes_pod_container_name"], action = "replace", target_label = "container" }
+      rule { source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"], action = "replace", target_label = "app" }
+      rule { source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"], action = "replace", target_label = "job", separator = "/", replacement = "$1" }
+      rule { source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"], action = "replace", target_label = "__path__", separator = "/", replacement = "/var/log/pods/*$1/*.log" }
+      rule { source_labels = ["__meta_kubernetes_pod_container_id"], action = "replace", target_label = "container_runtime", regex = "^(\\S+):\\/\\/.+$", replacement = "$1" }
+    }
+
+    # Loki Source for Kubernetes Logs
+    loki.source.kubernetes "pod_logs" {
+      targets = discovery.relabel.pod_logs.output
+      forward_to = [loki.process.pod_logs.receiver]
+    }
+
+    loki.process "pod_logs" {
+      stage.static_labels { values = { cluster = "rancher-desktop" } }
+      forward_to = [loki.write.grafanacloud.receiver]
+    }
+
+    loki.write "grafanacloud" {
+      endpoint {
+        url = "http://loki-appofapps-gateway.observability.svc.cluster.local/loki/api/v1/push"
       }
+    }
 
-      # Relabel Configuration for Pod Logs
-      discovery.relabel "pod_logs" {
-        targets = discovery.kubernetes.pod.targets
+    # Prometheus Scraping Configurations
+    # prometheus.scrape "node_exporter" {
+    #   targets = [{ __address__ = "node-exporter-prometheus-node-exporter.alloy.svc.cluster.local:9100" }]
+    #   forward_to = [prometheus.remote_write.mimir.receiver]
+    #   job_name = "node_exporter"
+    # }
+    # prometheus.scrape "kube-state-metrics" {
+    #   targets = [{ __address__ = "kube-state-metrics.kube-system.svc.cluster.local:8080" }]
+    #   forward_to = [prometheus.remote_write.mimir.receiver]
+    #   job_name = "kube-state-metrics"
+    # }
+    # prometheus.scrape "kubelet" {
+    #   targets = [{ __address__ = "kubelet.kube-system.svc.cluster.local:10250" }]
+    #   forward_to = [prometheus.remote_write.mimir.receiver]
+    #   job_name = "kubelet"
+    # }
+    # prometheus.scrape "apiserver" {
+    #   targets = [{ __address__ = "kubernetes.default.svc.cluster.local:443" }]
+    #   forward_to = [prometheus.remote_write.mimir.receiver]
+    #   job_name = "kubernetes-apiserver"
+    # }
 
-        rule { source_labels = ["__meta_kubernetes_namespace"], action = "replace", target_label = "namespace" }
-        rule { source_labels = ["__meta_kubernetes_pod_name"], action = "replace", target_label = "pod" }
-        rule { source_labels = ["__meta_kubernetes_pod_container_name"], action = "replace", target_label = "container" }
-        rule { source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"], action = "replace", target_label = "app" }
-        rule { source_labels = ["__meta_kubernetes_namespace", "__meta_kubernetes_pod_container_name"], action = "replace", target_label = "job", separator = "/", replacement = "$1" }
-        rule { source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"], action = "replace", target_label = "__path__", separator = "/", replacement = "/var/log/pods/*$1/*.log" }
-        rule { source_labels = ["__meta_kubernetes_pod_container_id"], action = "replace", target_label = "container_runtime", regex = "^(\\S+):\\/\\/.+$", replacement = "$1" }
-      }
+    # Remote Write to Mimir
+    # prometheus.remote_write "mimir" {
+    #   endpoint {
+    #     name = "mimir-distributor"
+    #     url = "http://mimir-dev-nginx.mimir-dev.svc:80/api/v1/push"
+    #     metadata_config { max_samples_per_send = 1000 }
+    #   }
+    # }
 
-      # Loki Source for Kubernetes Logs
-      loki.source.kubernetes "pod_logs" {
-        targets = discovery.relabel.pod_logs.output
-        forward_to = [loki.process.pod_logs.receiver]
-      }
+    # Loki Push for Logs
+    loki.push "loki" {
+      endpoint = "http://loki-appofapps-gateway.observability.svc.cluster.local/loki/api/v1/push"
+    }
 
-      loki.process "pod_logs" {
-        stage.static_labels { values = { cluster = "rancher-desktop" } }
-        forward_to = [loki.write.grafanacloud.receiver]
-      }
-
-      loki.write "grafanacloud" {
-        endpoint {
-          url = "http://loki-appofapps-gateway.observability.svc.cluster.local/loki/api/v1/push"
-        }
-      }
-
-      # Prometheus Scraping Configurations
-      # prometheus.scrape "node_exporter" {
-      #   targets = [{ __address__ = "node-exporter-prometheus-node-exporter.alloy.svc.cluster.local:9100" }]
-      #   forward_to = [prometheus.remote_write.mimir.receiver]
-      #   job_name = "node_exporter"
-      # }
-      # prometheus.scrape "kube-state-metrics" {
-      #   targets = [{ __address__ = "kube-state-metrics.kube-system.svc.cluster.local:8080" }]
-      #   forward_to = [prometheus.remote_write.mimir.receiver]
-      #   job_name = "kube-state-metrics"
-      # }
-      # prometheus.scrape "kubelet" {
-      #   targets = [{ __address__ = "kubelet.kube-system.svc.cluster.local:10250" }]
-      #   forward_to = [prometheus.remote_write.mimir.receiver]
-      #   job_name = "kubelet"
-      # }
-      # prometheus.scrape "apiserver" {
-      #   targets = [{ __address__ = "kubernetes.default.svc.cluster.local:443" }]
-      #   forward_to = [prometheus.remote_write.mimir.receiver]
-      #   job_name = "kubernetes-apiserver"
-      # }
-
-      # Remote Write to Mimir
-      # prometheus.remote_write "mimir" {
-      #   endpoint {
-      #     name = "mimir-distributor"
-      #     url = "http://mimir-dev-nginx.mimir-dev.svc:80/api/v1/push"
-      #     metadata_config { max_samples_per_send = 1000 }
-      #   }
-      # }
-
-      # Loki Push for Logs
-      loki.push "loki" {
-        endpoint = "http://loki-appofapps-gateway.observability.svc.cluster.local/loki/api/v1/push"
-      }
-
-      # Tempo Tracing
-      # tempo.push "tempo" {
-      #   endpoint = "http://tempo-dev-distributed-distributor.tempo-dev.svc:3200/api/traces"
-      # }
-
-  # Additional Configuration
-  clustering:
-    enabled: false
-    name: ""
-  storagePath: /tmp/alloy
-  listenAddr: 0.0.0.0
-  listenPort: 12345
-  listenScheme: HTTP
-  uiPathPrefix: /
-  enableReporting: true
-
-  extraEnv: []
-  envFrom: []
-  extraArgs: []
-  extraPorts: []
-
-  mounts:
-    varlog: true
-    dockercontainers: true
-    extra: []
-
-  resources: {} # Set resource limits/requests here if needed
-
-controller:
-  type: 'daemonset'
-  replicas: 1
-  extraAnnotations: {}
-  hostNetwork: false
-  dnsPolicy: ClusterFirst
-  terminationGracePeriodSeconds: 30
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-  updateStrategy: {}
-  priorityClassName: ''
-  podAnnotations: {}
-  podLabels: {}
-
-  podDisruptionBudget:
-    enabled: false
-
-  autoscaling:
-    enabled: false
-
-service:
-  enabled: true
-  type: ClusterIP
-  nodePort: 31128
-  clusterIP: ''
-  internalTrafficPolicy: Cluster
-  annotations: {}
-
-serviceAccount:
-  create: true
-  additionalLabels: {}
-  annotations: {}
-  name: grafana-alloy-service-account
-
-rbac:
-  create: true
-
-configReloader:
-  enabled: true
-  image:
-    registry: "ghcr.io"
-    repository: jimmidyson/configmap-reload
-    tag: v0.12.0
-  resources:
-    requests:
-      cpu: "1m"
-      memory: "5Mi"
-
-# ingress:
-#   enabled: false
-#   annotations: {}
-#   labels: {}
-#   path: /
-#   faroPort: 12347
-#   pathType: Prefix
-#   hosts:
-#     - chart-example.local
-#   tls: []
+    # Tempo Tracing
+    # tempo.push "tempo" {
+    #   endpoint = "http://tempo-dev-distributed-distributor.tempo-dev.svc:3200/api/traces"
+    # }
