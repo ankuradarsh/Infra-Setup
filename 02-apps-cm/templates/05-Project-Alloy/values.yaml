@@ -1,6 +1,7 @@
 alloy:
   configMap:
-    config: |
+    create: true
+    content: |
       logging {
         level  = "info"
         format = "logfmt"
