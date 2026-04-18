@@ -1,0 +1,68 @@
+grafana:
+
+  # =========================
+  # Custom Image (IMPORTANT)
+  # =========================
+  image:
+    registry: docker.io   # change if using private registry
+    repository: grafana/grafana
+    tag: 12.4.3
+    pullPolicy: IfNotPresent
+
+  imagePullSecrets: []
+  
+  adminUser: admin
+  adminPassword: admin   # move to Vault later
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  persistence:
+    enabled: true
+    size: 10Gi
+    accessModes:
+      - ReadWriteOnce
+
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://loki-appofapps-gateway.observability.svc.cluster.local
+          isDefault: true
+
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL
+
+    datasources:
+      enabled: true
+      label: grafana_datasource
+
+  # =========================
+  # Grafana Config
+  # =========================
+  grafana.ini:
+    server:
+      root_url: https://grafana.your-domain.com
+    security:
+      allow_embedding: true
+    users:
+      auto_assign_org: true
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+
+  env:
+    GF_LOG_LEVEL: info
