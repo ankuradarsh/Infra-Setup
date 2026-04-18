@@ -148,7 +148,7 @@ serviceAccount:
   create: true
   additionalLabels: {}
   annotations: {}
-  name: null
+  name: grafana-alloy-service-account
 
 rbac:
   create: true
