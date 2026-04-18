@@ -1,0 +1,118 @@
+nameOverride: "alloy"
+fullnameOverride: ""
+
+global:
+  image:
+    registry: ""
+
+alloy:
+  # This makes Alloy run on EVERY node in your Kubernetes cluster.
+  # This is the best way to collect logs from all pods.
+  controller:
+    type: daemonset
+
+  # Mount host directories so Alloy can read container logs from the node
+  mounts:
+    varlog: true
+    dockercontainers: true
+
+  # Resource limits for Alloy pod (you can increase later if needed)
+  resources:
+    requests:
+      cpu: 10m
+      memory: 10Mi
+    limits:
+      cpu: 100m
+      memory: 100Mi
+
+  # This is where we write the actual Alloy configuration
+  configMap:
+    create: true
+    content: |
+      // =============================================
+      // Grafana Alloy Configuration - Sending logs to Loki
+      // =============================================
+
+      // Basic logging settings for Alloy itself
+      logging {
+        level  = "info"      // How much detail Alloy should print (info, debug, warn, error)
+        format = "logfmt"    // Easy to read format
+      }
+
+      // =============================================================
+      // PART 1: Collect logs from all Pods running in Kubernetes
+      // =============================================================
+
+      // Step 1: Discover all pods running in the cluster
+      discovery.kubernetes "pods" {
+        role = "pod"         // Tell Alloy to find all pods
+      }
+
+      // Step 2: Read actual logs from those pods (container logs)
+      loki.source.kubernetes "pod_logs" {
+        targets    = discovery.kubernetes.pods.targets
+        forward_to = [loki.process.pod_logs.receiver]
+      }
+
+      // Step 3: Process the logs before sending to Loki
+      loki.process "pod_logs" {
+
+        // Drop logs from very noisy system namespaces
+        // You can remove or change this list based on what you want to see
+        stage.drop {
+          source      = "namespace"
+          expression  = "kube-system|monitoring|logging"
+          drop_counter_reason = "noisy_namespace"
+        }
+
+        // Add some extra information (labels) so you can easily filter logs later in Grafana
+        stage.static_labels {
+          values = {
+            cluster = "rancher-desktop-set-local-by-ankur"     // ← IMPORTANT: CHANGE THIS to your cluster name (e.g. "prod-cluster", "dev-k8s")
+            source  = "pod-logs"
+          }
+        }
+
+        // Send the processed logs to Loki
+        forward_to = [loki.write.loki.receiver]
+      }
+
+      // =============================================================
+      // PART 2: Collect Kubernetes Events (Pod started, crashed, etc.)
+      // =============================================================
+
+      // Read important events from Kubernetes
+      loki.source.kubernetes_events "cluster_events" {
+        forward_to = [loki.process.events.receiver]
+      }
+
+      // Add labels to events so they are easy to find
+      loki.process "events" {
+        stage.static_labels {
+          values = {
+            work = "collecting-events"
+            cluster = "rancher-desktop-set-local-by-ankur"
+            source  = "k8s-events"
+          }
+        }
+        forward_to = [loki.write.loki.receiver]
+      }
+
+      // =============================================================
+      // PART 3: Send everything to your Loki
+      // =============================================================
+
+      loki.write "loki" {
+        endpoint {
+          // This is the address of your Loki (using the gateway that comes with SingleBinary)
+          url = "http://loki-appofapps-gateway.monitoring.svc.cluster.local/loki/api/v1/push"
+
+          // No extra authentication needed because you set auth_enabled: false in Loki
+        }
+
+        // These labels will be added to ALL logs sent to Loki
+        external_labels = {
+          cluster     = "rancher-desktop"      // ← CHANGE THIS
+          environment = "local"             // Change to "prod", "staging", etc.
+        }
+      }
