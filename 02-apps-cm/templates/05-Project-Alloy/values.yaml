@@ -1,3 +1,9 @@
+alloy:
+  configMap:
+    create: false
+    name: grafana-alloy-config
+    key: config.alloy
+
 # alloy:
 #   configMap:
 #     create: true
