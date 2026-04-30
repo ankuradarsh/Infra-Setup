@@ -46,7 +46,3 @@ alloy:
           url = "http://loki-appofapps-gateway.observability.svc.cluster.local/loki/api/v1/push"
         }
       }
-
-  mounts:
-    varlog: true
-    dockercontainers: true
