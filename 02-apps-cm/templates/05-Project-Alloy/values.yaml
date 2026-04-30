@@ -1,6 +1,7 @@
 alloy:
   configMap:
     create: true
+    name:  grafana-alloy-configmap
     content: |
       logging {
         level  = "info"
