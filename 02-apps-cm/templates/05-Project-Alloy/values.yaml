@@ -1,5 +1,6 @@
 alloy:
-  configMap:
+  alloy:
+    configMap:
     create: true
     content: |
       logging {
