@@ -1,5 +1,5 @@
 alloy:
-  alloy:   # 👈 THIS IS THE FIX (subchart name)
+  alloy:
     configMap:
       create: true
       content: |
