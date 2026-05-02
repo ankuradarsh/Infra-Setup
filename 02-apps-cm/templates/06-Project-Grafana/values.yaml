@@ -12,7 +12,7 @@ grafana:
   imagePullSecrets: []
   
   adminUser: admin
-  adminPassword: admin   # move to Vault later
+  adminPassword: admin123   # move to Vault later
 
   service:
     type: ClusterIP
