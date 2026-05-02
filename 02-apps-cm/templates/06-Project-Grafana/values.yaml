@@ -24,15 +24,15 @@ grafana:
     accessModes:
       - ReadWriteOnce
 
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-        - name: Loki
-          type: loki
-          access: proxy
-          url: http://loki-appofapps-gateway.observability.svc.cluster.local
-          isDefault: true
+  # datasources:
+  #   datasources.yaml:
+  #     apiVersion: 1
+  #     datasources:
+  #       - name: Loki
+  #         type: loki
+  #         access: proxy
+  #         url: http://loki-appofapps-gateway.observability.svc.cluster.local
+  #         isDefault: true
 
   sidecar:
     dashboards:
