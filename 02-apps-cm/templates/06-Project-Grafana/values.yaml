@@ -66,3 +66,18 @@ grafana:
 
   env:
     GF_LOG_LEVEL: info
+
+
+---
+dashboards:
+  kubernetes-pods:
+    folder: "Kubernetes"
+    file: dashboards/kubernetes-pods.json
+
+  node-metrics:
+    folder: "Infrastructure"
+    file: dashboards/node-metrics.json
+
+  logs-overview:
+    folder: "Logs"
+    file: dashboards/logs-overview.json

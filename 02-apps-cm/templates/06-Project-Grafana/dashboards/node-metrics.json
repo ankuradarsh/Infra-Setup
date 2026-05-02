@@ -1,0 +1,41 @@
+{
+  "title": "Node Logs Overview",
+  "uid": "node-logs",
+  "schemaVersion": 36,
+  "version": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "node",
+        "type": "query",
+        "datasource": "Loki",
+        "query": "label_values(host)",
+        "refresh": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "logs",
+      "title": "Node Logs",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 12 },
+      "targets": [
+        {
+          "expr": "{host=\"$node\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "Node Errors",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 12 },
+      "targets": [
+        {
+          "expr": "{host=\"$node\"} |= \"error\"",
+          "refId": "B"
+        }
+      ]
+    }
+  ]
+}

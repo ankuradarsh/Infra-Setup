@@ -1,0 +1,37 @@
+{
+  "title": "Kubernetes Pod Logs",
+  "uid": "k8s-pod-logs",
+  "schemaVersion": 36,
+  "version": 1,
+  "templating": {
+    "list": [
+      {
+        "name": "namespace",
+        "type": "query",
+        "datasource": "Loki",
+        "query": "label_values(namespace)",
+        "refresh": 1
+      },
+      {
+        "name": "pod",
+        "type": "query",
+        "datasource": "Loki",
+        "query": "label_values(pod)",
+        "refresh": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "logs",
+      "title": "Pod Logs",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 12 },
+      "targets": [
+        {
+          "expr": "{namespace=\"$namespace\", pod=\"$pod\"}",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

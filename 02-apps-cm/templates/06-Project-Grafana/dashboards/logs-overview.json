@@ -1,0 +1,31 @@
+{
+  "title": "Logs Overview",
+  "uid": "logs-overview",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "logs",
+      "title": "All Logs",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 10 },
+      "targets": [
+        {
+          "expr": "{job=\"varlogs\"}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "logs",
+      "title": "Error Logs",
+      "gridPos": { "x": 0, "y": 10, "w": 24, "h": 10 },
+      "targets": [
+        {
+          "expr": "{job=\"varlogs\"} |= \"error\"",
+          "refId": "B"
+        }
+      ]
+    }
+  ]
+}

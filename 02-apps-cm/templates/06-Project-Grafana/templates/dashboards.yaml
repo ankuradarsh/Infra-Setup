@@ -1,0 +1,19 @@
+{{- if .Values.dashboards }}
+{{- $files := .Files }}
+
+{{- range $name, $cfg := .Values.dashboards }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $name }}
+  labels:
+    grafana_dashboard: "true"
+  annotations:
+    grafana_folder: {{ $cfg.folder | quote }}
+
+data:
+  {{ ($files.Get $cfg.file | nindent 2) }}
+
+---
+{{- end }}
+{{- end }}
