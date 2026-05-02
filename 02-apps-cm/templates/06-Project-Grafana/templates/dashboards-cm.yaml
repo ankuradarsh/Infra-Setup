@@ -6,13 +6,15 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
   labels:
     grafana_dashboard: "true"
   annotations:
     grafana_folder: {{ $cfg.folder | quote }}
 
 data:
-  {{ ($files.Get $cfg.file | nindent 2) }}
+  {{ $name }}.json: |
+{{ $files.Get $cfg.file | indent 4 }}
 
 ---
 {{- end }}
