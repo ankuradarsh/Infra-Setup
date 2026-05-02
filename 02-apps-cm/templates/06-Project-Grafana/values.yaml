@@ -68,7 +68,6 @@ grafana:
     GF_LOG_LEVEL: info
 
 
----
 dashboards:
   kubernetes-pods:
     folder: "Kubernetes"
