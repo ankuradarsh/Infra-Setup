@@ -16,11 +16,9 @@ grafana:
 
   initChownData:
     enabled: true
-    securityContext:
-      runAsUser: 0
-      runAsNonRoot: false
 
   securityContext:
+    runAsNonRoot: true
     runAsUser: 472
     runAsGroup: 472
     fsGroup: 472
