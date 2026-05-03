@@ -15,10 +15,10 @@ grafana:
   adminPassword: admin123   # move to Vault later
 
   initChownData:
-    enabled: false
+    enabled: true
     securityContext:
-      readOnlyRootFilesystem: false
-      runAsNonRoot: false
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
       runAsUser: 0
       seccompProfile:
         type: RuntimeDefault
