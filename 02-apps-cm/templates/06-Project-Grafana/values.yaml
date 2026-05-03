@@ -14,6 +14,17 @@ grafana:
   adminUser: admin
   adminPassword: admin123   # move to Vault later
 
+  initChownData:
+    enabled: true
+    securityContext:
+      runAsUser: 0
+      runAsNonRoot: false
+
+  securityContext:
+    runAsUser: 472
+    runAsGroup: 472
+    fsGroup: 472
+
   service:
     type: ClusterIP
     port: 80
