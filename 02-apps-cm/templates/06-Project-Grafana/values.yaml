@@ -15,7 +15,7 @@ grafana:
   adminPassword: admin123   # move to Vault later
 
   initChownData:
-    enabled: true
+    enabled: false
     securityContext:
       readOnlyRootFilesystem: true
       runAsNonRoot: true
