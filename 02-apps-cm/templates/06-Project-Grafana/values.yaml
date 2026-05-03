@@ -19,7 +19,7 @@ grafana:
     securityContext:
       readOnlyRootFilesystem: true
       runAsNonRoot: true
-      runAsUser: 0
+      runAsUser: 472
       seccompProfile:
         type: RuntimeDefault
       capabilities:
