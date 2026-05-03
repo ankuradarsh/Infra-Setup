@@ -1,20 +1,20 @@
 {
-  "title": "Kubernetes Logs (Loki)",
-  "uid": "k8s-logs-loki",
+  "title": "Kubernetes Logs (Loki) - Advanced",
+  "uid": "k8s-logs-loki-advanced",
   "schemaVersion": 38,
-  "version": 1,
+  "version": 2,
+  "refresh": "10s",
   "time": {
     "from": "now-15m",
     "to": "now"
   },
+
   "templating": {
     "list": [
       {
         "name": "namespace",
         "type": "query",
-        "datasource": {
-          "type": "loki"
-        },
+        "datasource": { "type": "loki" },
         "query": "label_values(namespace)",
         "multi": true,
         "includeAll": true,
@@ -23,9 +23,7 @@
       {
         "name": "pod",
         "type": "query",
-        "datasource": {
-          "type": "loki"
-        },
+        "datasource": { "type": "loki" },
         "query": "label_values({namespace=~\"$namespace\"}, pod)",
         "multi": true,
         "includeAll": true,
@@ -34,13 +32,19 @@
       {
         "name": "container",
         "type": "query",
-        "datasource": {
-          "type": "loki"
-        },
+        "datasource": { "type": "loki" },
         "query": "label_values({namespace=~\"$namespace\", pod=~\"$pod\"}, container)",
         "multi": true,
         "includeAll": true,
         "allValue": ".*"
+      },
+      {
+        "name": "level",
+        "type": "custom",
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "query": "error,warn,info,debug"
       },
       {
         "name": "query",
@@ -49,41 +53,79 @@
       }
     ]
   },
+
   "panels": [
+
     {
       "type": "timeseries",
-      "title": "Log Volume (Logs/sec)",
-      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 6 },
+      "title": "Log Rate (logs/sec)",
+      "gridPos": { "x": 0, "y": 0, "w": 24, "h": 5 },
       "targets": [
         {
-          "expr": "sum(count_over_time({namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} |~ \"(?i)$query\" [$__interval]))"
+          "expr": "sum(rate({namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} |~ \"(?i)$query\" [1m]))"
         }
       ]
     },
+
     {
       "type": "timeseries",
-      "title": "Top Namespaces (Log Volume)",
-      "gridPos": { "x": 0, "y": 6, "w": 12, "h": 6 },
+      "title": "Error Rate",
+      "gridPos": { "x": 0, "y": 5, "w": 12, "h": 5 },
       "targets": [
         {
-          "expr": "topk(5, sum by (namespace) (count_over_time({namespace=~\"$namespace\"}[$__interval])))"
+          "expr": "sum(rate({namespace=~\"$namespace\"} |= \"error\" [1m]))"
         }
       ]
     },
+
     {
       "type": "timeseries",
-      "title": "Top Pods (Log Volume)",
-      "gridPos": { "x": 12, "y": 6, "w": 12, "h": 6 },
+      "title": "Warning Rate",
+      "gridPos": { "x": 12, "y": 5, "w": 12, "h": 5 },
       "targets": [
         {
-          "expr": "topk(5, sum by (pod) (count_over_time({namespace=~\"$namespace\"}[$__interval])))"
+          "expr": "sum(rate({namespace=~\"$namespace\"} |= \"warn\" [1m]))"
         }
       ]
     },
+
+    {
+      "type": "timeseries",
+      "title": "Top Noisy Pods",
+      "gridPos": { "x": 0, "y": 10, "w": 12, "h": 6 },
+      "targets": [
+        {
+          "expr": "topk(5, sum by (pod) (rate({namespace=~\"$namespace\"}[5m])))"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Top Noisy Containers",
+      "gridPos": { "x": 12, "y": 10, "w": 12, "h": 6 },
+      "targets": [
+        {
+          "expr": "topk(5, sum by (container) (rate({namespace=~\"$namespace\"}[5m])))"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Logs by Level",
+      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 6 },
+      "targets": [
+        {
+          "expr": "sum by (level) (count_over_time({namespace=~\"$namespace\"} |~ \"(?i)(error|warn|info|debug)\" [$__interval]))"
+        }
+      ]
+    },
+
     {
       "type": "logs",
-      "title": "Logs",
-      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 12 },
+      "title": "Live Logs",
+      "gridPos": { "x": 0, "y": 22, "w": 24, "h": 14 },
       "targets": [
         {
           "expr": "{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"} |~ \"(?i)$query\""
@@ -91,7 +133,8 @@
       ],
       "options": {
         "showTime": true,
-        "wrapLogMessage": true
+        "wrapLogMessage": true,
+        "dedupStrategy": "none"
       }
     }
   ]
