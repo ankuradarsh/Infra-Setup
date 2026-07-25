@@ -3,10 +3,6 @@ kind: ConfigMap
 metadata:
   name: kibana-helm-scripts
   namespace: observability
-  annotations:
-    "helm.sh/hook": pre-install,pre-upgrade
-    "helm.sh/hook-weight": "-10"
-    "helm.sh/hook-delete-policy": before-hook-creation
 data:
   manage-es-token.js: |
     const http = require('http');
