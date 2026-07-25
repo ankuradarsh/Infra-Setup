@@ -9,7 +9,7 @@ spec:
       protocol: TCP
       port: 9200
       targetPort: 9200
-      nodePort: 30200
+      nodePort: 30092
   selector:
     app: elasticsearch
   type: NodePort
