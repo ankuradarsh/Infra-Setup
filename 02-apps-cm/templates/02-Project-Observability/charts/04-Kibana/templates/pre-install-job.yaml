@@ -14,8 +14,7 @@ spec:
       serviceAccountName: kibana-token-sa
       restartPolicy: Never
       initContainers:
-        # Wait for the ExternalSecret to be synced by ESO and the K8s secret
-        # to actually exist and be populated before the main container runs.
+        # Step 1 — wait for ESO to sync the credentials secret from Vault.
         - name: wait-for-credentials
           image: bitnami/kubectl:latest
           command:
@@ -29,6 +28,20 @@ spec:
                 sleep 5
               done
               echo "Secret is ready."
+
+        # Step 2 — wait for Elasticsearch to be up and accepting requests.
+        - name: wait-for-elasticsearch
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for Elasticsearch at elasticsearch.observability.svc.cluster.local:9200..."
+              until wget -qO- http://elasticsearch.observability.svc.cluster.local:9200 >/dev/null 2>&1; do
+                echo "  Elasticsearch not ready yet, retrying in 10s..."
+                sleep 10
+              done
+              echo "Elasticsearch is up."
       containers:
         - name: create-token
           image: node:20-alpine
