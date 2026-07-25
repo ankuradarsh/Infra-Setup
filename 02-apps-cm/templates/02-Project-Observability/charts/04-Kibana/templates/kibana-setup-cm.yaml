@@ -29,6 +29,25 @@ data:
       echo "    ${TYPE}/${ID} → HTTP ${CODE}"
     }
 
+    # ─── Helper: delete a Saved Object (ignore 404) ─────────────────────────
+    delete_obj() {
+      TYPE=$1; ID=$2
+      CODE=$(curl -s -o /dev/null -w "%{http_code}" $AUTH \
+        -X DELETE "${KIBANA}/api/saved_objects/${TYPE}/${ID}" \
+        -H "kbn-xsrf: true")
+      if [ "${CODE}" = "200" ] || [ "${CODE}" = "404" ]; then
+        echo "    deleted ${TYPE}/${ID} (HTTP ${CODE})"
+      else
+        echo "    WARN: delete ${TYPE}/${ID} returned HTTP ${CODE}"
+      fi
+    }
+
+    # ─── 0. Remove stale data views from before the index rename ────────────
+    echo "==> Removing stale data views (logs-k8s-*, logs-error-*, logs-misc-*)..."
+    delete_obj "index-pattern" "logs-k8s-star"
+    delete_obj "index-pattern" "logs-error-star"
+    delete_obj "index-pattern" "logs-misc-star"
+
     # ─── 1. Create Index Pattern: all k8s logs ───────────────────────────────
     echo "==> Creating index pattern: k8s-logs-*"
     upsert "index-pattern" "k8s-logs-star" '{

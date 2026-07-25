@@ -4,6 +4,9 @@ metadata:
   name: kibana-setup
   namespace: observability
 spec:
+  # Self-delete 30s after completion so ArgoCD recreates it on the next sync,
+  # ensuring index patterns are always up-to-date with the ConfigMap.
+  ttlSecondsAfterFinished: 30
   backoffLimit: 10
   template:
     spec:
