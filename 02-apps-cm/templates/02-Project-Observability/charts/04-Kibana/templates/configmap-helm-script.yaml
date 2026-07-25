@@ -36,11 +36,17 @@ data:
     const namespace = "observability";
     const secretName = "kibana-es-serviceaccount-token";
 
-    const k8sToken = fs.readFileSync('/run/secrets/kubernetes.io/serviceaccount/token');
-    const k8sCa   = fs.readFileSync('/run/secrets/kubernetes.io/serviceaccount/ca.crt');
+    const k8sToken = fs.readFileSync('/run/secrets/kubernetes.io/serviceaccount/token', 'utf8').trim();
+    const k8sCa   = fs.readFileSync('/run/secrets/kubernetes.io/serviceaccount/ca.crt', 'utf8');
+
+    // Build a reusable https.Agent that trusts the cluster CA
+    const k8sAgent = new https.Agent({ ca: k8sCa });
 
     function request(url, options, body) {
-      const mod = url.startsWith('https://') ? https : http;
+      const isHttpsUrl = url.startsWith('https://');
+      const mod = isHttpsUrl ? https : http;
+      // Inject the cluster CA agent for all K8s API calls
+      if (isHttpsUrl) options = Object.assign({ agent: k8sAgent }, options);
       return new Promise((resolve, reject) => {
         const req = mod.request(url, options, res => {
           let data = '';
@@ -65,7 +71,7 @@ data:
     async function k8sSecretExists() {
       const res = await request(
         `https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets/${secretName}`,
-        { method: 'GET', headers: { Authorization: `Bearer ${k8sToken}` }, ca: k8sCa }
+        { method: 'GET', headers: { Authorization: `Bearer ${k8sToken}` } }
       );
       return res.status === 200;
     }
@@ -91,8 +97,7 @@ data:
             headers: {
               Authorization: `Bearer ${k8sToken}`,
               'Content-Type': 'application/strategic-merge-patch+json'
-            },
-            ca: k8sCa
+            }
           },
           payload
         );
@@ -107,8 +112,7 @@ data:
             headers: {
               Authorization: `Bearer ${k8sToken}`,
               'Content-Type': 'application/json'
-            },
-            ca: k8sCa
+            }
           },
           payload
         );
@@ -138,8 +142,7 @@ data:
         `https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets/${secretName}`,
         {
           method: 'DELETE',
-          headers: { Authorization: `Bearer ${k8sToken}` },
-          ca: k8sCa
+          headers: { Authorization: `Bearer ${k8sToken}` }
         }
       );
       if (res.status >= 200 && res.status < 300 || res.status === 404) {
