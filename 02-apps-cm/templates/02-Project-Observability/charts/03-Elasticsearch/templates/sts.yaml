@@ -29,13 +29,29 @@ spec:
           env:
             - name: discovery.type
               value: single-node
-            # ELASTIC_PASSWORD is re-applied on every pod start by Elasticsearch 8+/9+.
-            # It keeps the running password in sync with the K8s secret automatically.
             - name: ELASTIC_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: elasticsearch-credentials
                   key: password
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/bash
+                  - -c
+                  - |
+                    # Wait until the ES HTTP API is accepting connections,
+                    # then force-reset the elastic user password to match
+                    # the current value of the secret. This ensures the
+                    # running password stays in sync even when the PVC
+                    # already has data from a previous boot.
+                    until curl -sf http://localhost:9200 >/dev/null 2>&1; do
+                      sleep 5
+                    done
+                    echo "${ELASTIC_PASSWORD}" | \
+                      /usr/share/elasticsearch/bin/elasticsearch-reset-password \
+                        -u elastic --stdin --batch --url http://localhost:9200
           volumeMounts:
             - name: elastic-data
               mountPath: /usr/share/elasticsearch/data

@@ -67,7 +67,7 @@ data:
           hosts => ["http://elasticsearch.observability.svc.cluster.local:9200"]
           index => "logs-error-%{+YYYY.MM.dd}"
           user => "elastic"
-          password => "LO___JhIJb8qbWBp5KNz"
+          password => "${ELASTIC_PASSWORD}"
         }
       }
 
@@ -77,11 +77,9 @@ data:
       else if [namespace] {
         elasticsearch {
           hosts => ["http://elasticsearch.observability.svc.cluster.local:9200"]
-
           index => "logs-k8s-%{namespace}-%{+YYYY.MM.dd}"
-
           user => "elastic"
-          password => "LO___JhIJb8qbWBp5KNz"
+          password => "${ELASTIC_PASSWORD}"
         }
       }
 
@@ -93,7 +91,7 @@ data:
           hosts => ["http://elasticsearch.observability.svc.cluster.local:9200"]
           index => "logs-misc-%{+YYYY.MM.dd}"
           user => "elastic"
-          password => "LO___JhIJb8qbWBp5KNz"
+          password => "${ELASTIC_PASSWORD}"
         }
       }
 

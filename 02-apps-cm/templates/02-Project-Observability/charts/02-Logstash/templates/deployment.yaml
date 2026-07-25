@@ -18,6 +18,12 @@ spec:
           image: elastic/logstash:9.1.7
           ports:
             - containerPort: 5044
+          env:
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-credentials
+                  key: password
           volumeMounts:
             - name: logstash-config
               mountPath: /usr/share/logstash/pipeline/logstash.conf
