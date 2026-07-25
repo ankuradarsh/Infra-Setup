@@ -26,7 +26,7 @@ spec:
         - name: ELASTICSEARCH_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: kibana-token
+              name: elasticsearch-credentials
               key: password
         - name: ELASTICSEARCH_URL
           value: "http://elasticsearch.observability.svc.cluster.local:9200/_security/service/elastic/kibana/credential/token/kibana-token"
