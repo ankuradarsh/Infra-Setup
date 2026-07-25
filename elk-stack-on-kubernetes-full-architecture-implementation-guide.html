@@ -1,0 +1,556 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ELK Stack on Kubernetes — Full Documentation</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f2328;
+    background: #ffffff;
+    padding: 32px 16px 64px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  h2 { font-size: 16px; font-weight: 700; margin: 36px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #e5e7eb; color: #1f2328; }
+  h3 { font-size: 14px; font-weight: 700; margin: 22px 0 6px; color: #1f2328; }
+  h4 { font-size: 13px; font-weight: 600; margin: 14px 0 4px; color: #3b82d4; }
+  p  { margin: 6px 0 10px; color: #1f2328; }
+  ul, ol { margin: 6px 0 10px 20px; }
+  li { margin: 3px 0; }
+
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 28px; }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 18px 20px;
+    margin: 16px 0 24px;
+  }
+  .flow-box {
+    background: #ffffff;
+    border: 1px solid #3b82d4;
+    border-radius: 5px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #3b82d4;
+    white-space: nowrap;
+  }
+  .flow-box.grey { border-color: #57606a; color: #57606a; }
+  .flow-box.purple { border-color: #7c5cd8; color: #7c5cd8; }
+  .flow-box.green { border-color: #2da44e; color: #2da44e; }
+  .flow-arrow {
+    font-size: 16px;
+    color: #57606a;
+    padding: 0 8px;
+  }
+
+  /* Startup sequence */
+  .seq { margin: 10px 0 20px; }
+  .seq-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 6px;
+    align-items: flex-start;
+  }
+  .seq-num {
+    background: #3b82d4;
+    color: #fff;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .seq-text { font-size: 13px; }
+  .seq-text strong { color: #1f2328; }
+
+  /* File table */
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 20px; font-size: 13px; }
+  th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 7px 10px; text-align: left; font-weight: 600; color: #57606a; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+  td { border: 1px solid #e5e7eb; padding: 7px 10px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7f8fa; }
+  code { font-family: "SFMono-Regular", Consolas, monospace; font-size: 12px; background: #f0f1f3; padding: 1px 5px; border-radius: 3px; color: #c0392b; }
+
+  /* Code block */
+  pre {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 5px;
+    padding: 14px 16px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 12px;
+    overflow-x: auto;
+    margin: 8px 0 16px;
+    line-height: 1.5;
+    color: #1f2328;
+  }
+
+  /* Alert boxes */
+  .alert {
+    border-radius: 5px;
+    padding: 12px 16px;
+    margin: 12px 0 18px;
+    font-size: 13px;
+    border-left: 4px solid;
+  }
+  .alert-warn { background: #fffbeb; border-color: #d97706; }
+  .alert-info { background: #eff6ff; border-color: #3b82d4; }
+  .alert-ok   { background: #f0fdf4; border-color: #2da44e; }
+  .alert-title { font-weight: 700; margin-bottom: 4px; }
+
+  /* Index table badges */
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 10px;
+    background: #f0f1f3;
+    color: #57606a;
+    border: 1px solid #e5e7eb;
+  }
+  .badge-blue  { background: #eff6ff; color: #3b82d4; border-color: #bfdbfe; }
+  .badge-green { background: #f0fdf4; color: #2da44e; border-color: #bbf7d0; }
+  .badge-red   { background: #fff1f2; color: #e11d48; border-color: #fecdd3; }
+
+  /* Section divider */
+  .divider { border: none; border-top: 1px solid #e5e7eb; margin: 32px 0; }
+
+  .muted { color: #57606a; font-size: 13px; }
+
+  footer { text-align: center; font-size: 12px; color: #57606a; margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>ELK Stack on Kubernetes</h1>
+  <p class="subtitle">Full Architecture &amp; Implementation Guide — Namespace: <code>observability</code> · Cluster: k3s single-node · ArgoCD-managed · Vault-backed secrets</p>
+
+  
+  <h2>1. High-Level Architecture</h2>
+
+  <div class="flow">
+    <div class="flow-box grey">Container Logs<br /><span style="font-size:10px;font-weight:400">/var/lib/docker/containers</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">Filebeat<br /><span style="font-size:10px;font-weight:400">DaemonSet · 8.10.2</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">Logstash<br /><span style="font-size:10px;font-weight:400">Deployment · 9.1.7</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">Elasticsearch<br /><span style="font-size:10px;font-weight:400">StatefulSet · 9.1.7</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box green">Kibana<br /><span style="font-size:10px;font-weight:400">Deployment · 9.1.7</span></div>
+  </div>
+
+  <div class="flow" style="margin-top:-8px">
+    <div class="flow-box purple">HashiCorp Vault<br /><span style="font-size:10px;font-weight:400">secret source</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box purple">External Secrets Operator<br /><span style="font-size:10px;font-weight:400">syncs every 1 h</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box purple">K8s Secret<br /><span style="font-size:10px;font-weight:400">elasticsearch-credentials</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box purple">Token Job<br /><span style="font-size:10px;font-weight:400">kibana-es-serviceaccount-token</span></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box purple">Kibana auth<br /><span style="font-size:10px;font-weight:400">ELASTICSEARCH_SERVICEACCOUNTTOKEN</span></div>
+  </div>
+
+  <p>Everything lives in the <code>observability</code> namespace. ArgoCD watches the Git repository and applies every manifest automatically. No manual steps are required after a first <code>git push</code>.</p>
+
+  
+  <h2>2. Repository Structure</h2>
+
+  <pre>02-apps-cm/templates/02-Project-Observability/
+├── Chart.yaml                          ← umbrella Helm chart
+└── charts/
+    ├── 01-Filebeat/
+    │   └── templates/
+    │       ├── cm.yaml                 ← filebeat.yml config
+    │       ├── daemonset.yaml          ← one pod per node
+    │       └── sa.yaml                 ← ServiceAccount + ClusterRole + ClusterRoleBinding
+    ├── 02-Logstash/
+    │   └── templates/
+    │       ├── cm.yaml                 ← logstash.conf pipeline
+    │       ├── deployment.yaml         ← single replica
+    │       └── svc.yaml                ← NodePort 30044
+    ├── 03-Elasticsearch/
+    │   └── templates/
+    │       ├── externalsecret.yaml     ← pulls password from Vault → K8s Secret
+    │       ├── service.yaml            ← NodePort 30092
+    │       └── sts.yaml                ← StatefulSet + password-sync sidecar
+    └── 04-Kibana/
+        └── templates/
+            ├── cm.yaml                 ← kibana.yml (minimal)
+            ├── configmap-helm-script.yaml  ← manage-es-token.js (Node.js)
+            ├── deployment.yaml         ← reads service-account token from secret
+            ├── external-secret.yaml    ← comment only (owned by ES chart)
+            ├── kibana-setup-cm.yaml    ← setup.sh: index patterns + dashboard
+            ├── kibana-setup-job.yaml   ← runs setup.sh, self-deletes after 30 s
+            ├── post-delete-job.yaml    ← Helm hook: cleans up token on delete
+            ├── pre-install-job.yaml    ← creates Kibana service-account token in ES
+            ├── rbac.yaml               ← ServiceAccount + Role + RoleBinding
+            └── svc.yaml                ← NodePort 30201</pre>
+
+  
+  <h2>3. Secrets — Vault → External Secrets → Kubernetes</h2>
+
+  <h3>Why no hardcoded passwords</h3>
+  <p>Every password lives exclusively in HashiCorp Vault. The External Secrets Operator (ESO) reads the Vault secret path and writes a Kubernetes <code>Secret</code> object. No password ever appears in any YAML file or container environment definition in plain text.</p>
+
+  <h3>ExternalSecret manifest (<code>externalsecret.yaml</code>)</h3>
+  <pre>secretStoreRef: vault-secretstore        # pre-existing SecretStore pointing at Vault
+target.name:    elasticsearch-credentials  # the K8s Secret this creates
+data:
+  secretKey: password
+  remoteRef:
+    key:      elastisearch                 # Vault path
+    property: kibana-token                 # field inside the Vault secret</pre>
+
+  <p>The resulting secret <code>elasticsearch-credentials</code> has a single key <code>password</code>. Every component that needs the Elasticsearch password reads it from this secret via <code>secretKeyRef</code>. ESO refreshes it every hour.</p>
+
+  <h3>Startup dependency chain</h3>
+  <div class="seq">
+    <div class="seq-row"><div class="seq-num">1</div><div class="seq-text">ESO syncs <strong>elasticsearch-credentials</strong> from Vault into the namespace.</div></div>
+    <div class="seq-row"><div class="seq-num">2</div><div class="seq-text">Elasticsearch StatefulSet starts; the <code>ELASTIC_PASSWORD</code> env var is injected from the secret.</div></div>
+    <div class="seq-row"><div class="seq-num">3</div><div class="seq-text">The <strong>password-sync sidecar</strong> waits for ES health, then forcibly sets the <code>elastic</code> user password to match the secret — ensuring no drift after PVC restores.</div></div>
+    <div class="seq-row"><div class="seq-num">4</div><div class="seq-text">The sidecar registers the <code>k8s-single-node</code> index template (priority 200, <code>number_of_replicas: 0</code>) and patches any existing <code>k8s-*</code> indices to replicas=0.</div></div>
+    <div class="seq-row"><div class="seq-num">5</div><div class="seq-text"><strong>create-kibana-token</strong> Job: initContainer waits for the secret → second initContainer waits for ES security API → main container runs <code>manage-es-token.js create</code>.</div></div>
+    <div class="seq-row"><div class="seq-num">6</div><div class="seq-text">The Node.js script calls <code>POST /_security/service/elastic/kibana/credential/token/kibana-token</code> on ES and writes the returned token into the secret <code>kibana-es-serviceaccount-token</code>.</div></div>
+    <div class="seq-row"><div class="seq-num">7</div><div class="seq-text">Kibana Deployment starts and reads <code>ELASTICSEARCH_SERVICEACCOUNTTOKEN</code> from that secret — no login screen, no manual token copy.</div></div>
+    <div class="seq-row"><div class="seq-num">8</div><div class="seq-text"><strong>kibana-setup</strong> Job runs <code>setup.sh</code>: deletes stale data views, creates <code>k8s-logs-*</code> / <code>k8s-error-*</code> / <code>k8s-misc-*</code> data views, a dashboard, and two saved searches via the Kibana Saved Objects API.</div></div>
+  </div>
+
+  
+  <h2>4. Component Deep-Dive</h2>
+
+  
+  <h3>4.1 Filebeat (DaemonSet)</h3>
+  <p><strong>Image:</strong> <code>docker.elastic.co/beats/filebeat:8.10.2</code> — kept at 8.x because Filebeat 9 has breaking changes to the <code>add_kubernetes_metadata</code> processor.</p>
+
+  <h4>The log path problem on k3s</h4>
+  <p>k3s uses the Docker JSON log driver. The actual log data lives at:</p>
+  <pre>/var/lib/docker/containers/&lt;id&gt;/&lt;id&gt;-json.log</pre>
+  <p>But container runtimes expose two layers of symlinks on top:</p>
+  <pre>/var/log/containers/&lt;name&gt;.log
+    → /var/log/pods/&lt;namespace&gt;_&lt;pod&gt;/&lt;container&gt;/0.log
+        → /var/lib/docker/containers/&lt;id&gt;/&lt;id&gt;-json.log</pre>
+  <p>Filebeat's <code>type: container</code> input follows this double-symlink chain automatically, but <strong>only if all three directories are mounted</strong> into the DaemonSet pod.</p>
+
+  <h4>Volume mounts required</h4>
+  <table>
+    <tr><th>Host path</th><th>Purpose</th></tr>
+    <tr><td><code>/var/log/containers</code></td><td>Top-level symlinks — Filebeat reads the directory listing</td></tr>
+    <tr><td><code>/var/log/pods</code></td><td>Middle symlinks — first hop in the chain</td></tr>
+    <tr><td><code>/var/lib/docker/containers</code></td><td>Actual JSON log files — must be mounted for Filebeat to open them</td></tr>
+    <tr><td><code>/var/lib/filebeat-data</code> (hostPath)</td><td>Registry — stores per-file read offsets so logs are not reshipped after pod restart</td></tr>
+  </table>
+
+  <h4>RBAC</h4>
+  <p>The <code>filebeat</code> ClusterRole grants <code>get/list/watch</code> on <code>pods</code>, <code>nodes</code>, <code>namespaces</code>, <code>replicasets</code>, and <code>jobs</code>. This is required by the <code>add_kubernetes_metadata</code> processor to enrich every log line with pod labels, namespace, and node name.</p>
+
+  <h4>Config highlights</h4>
+  <pre>filebeat.inputs:
+  - type: container
+    paths: ["/var/log/containers/*.log"]
+    stream: all
+    tags: ["kubernetes", "container-logs"]
+
+processors:
+  - add_kubernetes_metadata:
+      host: ${NODE_NAME}          # injected via fieldRef: spec.nodeName
+      matchers:
+        - logs_path:
+            logs_path: "/var/log/containers/"
+  - drop_fields:
+      fields: ["agent", "ecs", "input"]
+  - add_fields:
+      fields: { cluster: "k8s-prod" }
+
+output.logstash:
+  hosts: ["logstash.observability.svc.cluster.local:5044"]</pre>
+
+  
+  <h3>4.2 Logstash (Deployment)</h3>
+  <p><strong>Image:</strong> <code>elastic/logstash:9.1.7</code></p>
+  <p>Single-replica Deployment. Receives Beats events on port 5044 (Lumberjack protocol). The pipeline has three stages: <strong>input → filter → output</strong>.</p>
+
+  <h4>Filter pipeline — what happens to each log event</h4>
+  <div class="seq">
+    <div class="seq-row"><div class="seq-num">1</div><div class="seq-text"><strong>Kubernetes metadata promotion</strong> — flattens <code>[kubernetes][namespace]</code>, <code>[kubernetes][pod][name]</code> etc. into top-level fields <code>k8s_namespace</code>, <code>k8s_pod</code>, <code>k8s_container</code>, <code>k8s_node</code> so they are searchable in Kibana without nested field syntax.</div></div>
+    <div class="seq-row"><div class="seq-num">2</div><div class="seq-text"><strong>JSON parsing</strong> — if <code>message</code> starts with <code>{</code>, parse it into a <code>structured</code> sub-object and promote <code>level</code>/<code>severity</code> into <code>log_level</code>.</div></div>
+    <div class="seq-row"><div class="seq-num">3</div><div class="seq-text"><strong>Log level normalisation</strong> — cascades through <code>log_level</code> → <code>[log][level]</code> → <code>[level]</code> → defaults to <code>"info"</code>. Always lowercased.</div></div>
+    <div class="seq-row"><div class="seq-num">4</div><div class="seq-text"><strong>Timestamp override</strong> — if the structured payload has its own <code>@timestamp</code>, use it instead of Logstash's ingestion time.</div></div>
+    <div class="seq-row"><div class="seq-num">5</div><div class="seq-text"><strong>kube-system / kube-public drop</strong> — internal cluster infrastructure logs are dropped entirely; they are noise in Kibana.</div></div>
+    <div class="seq-row"><div class="seq-num">6</div><div class="seq-text"><strong>Field cleanup</strong> — removes <code>agent</code>, <code>ecs</code>, <code>input</code>, <code>log</code>, <code>host</code>, <code>beat</code>, <code>tags</code> to reduce index size.</div></div>
+  </div>
+
+  <h4>Output routing</h4>
+  <table>
+    <tr><th>Condition</th><th>Index pattern</th><th>Example</th></tr>
+    <tr><td><code>log_level</code> is error / fatal / critical</td><td><code>k8s-error-YYYY.MM.dd</code></td><td><code>k8s-error-2026.07.25</code></td></tr>
+    <tr><td>event has a <code>k8s_namespace</code></td><td><code>k8s-logs-{namespace}-YYYY.MM.dd</code></td><td><code>k8s-logs-argocd-2026.07.25</code></td></tr>
+    <tr><td>everything else</td><td><code>k8s-misc-YYYY.MM.dd</code></td><td><code>k8s-misc-2026.07.25</code></td></tr>
+  </table>
+
+  <div class="alert alert-warn">
+    <div class="alert-title">⚠ Why index names do NOT start with <code>logs-</code></div>
+    Elasticsearch 9 ships a built-in index template named <code>logs</code> at <strong>priority 100</strong> that matches the glob <code>logs-*-*</code>. Any matching index is automatically converted into a <strong>data stream</strong>, which enforces <code>number_of_replicas: 1</code> (yellow on a single-node cluster) and rejects plain <code>index</code> write operations with HTTP 400. Renaming to <code>k8s-*</code> avoids this entirely.
+  </div>
+
+  
+  <h3>4.3 Elasticsearch (StatefulSet)</h3>
+  <p><strong>Image:</strong> <code>elastic/elasticsearch:9.1.7</code> · <strong>Storage:</strong> 10 Gi PVC · <strong>Memory:</strong> request 1600 Mi / limit 2 Gi</p>
+
+  <h4>Key environment variables</h4>
+  <table>
+    <tr><th>Variable</th><th>Value</th><th>Why</th></tr>
+    <tr><td><code>discovery.type</code></td><td><code>single-node</code></td><td>Skips zen discovery; starts immediately without quorum.</td></tr>
+    <tr><td><code>xpack.security.http.ssl.enabled</code></td><td><code>false</code></td><td>ES 9 auto-enables TLS on first start. Disabled so all in-cluster traffic stays plain HTTP and no certificate management is needed.</td></tr>
+    <tr><td><code>xpack.security.transport.ssl.enabled</code></td><td><code>false</code></td><td>Same reason — transport layer between nodes (only one here) is plain text.</td></tr>
+    <tr><td><code>ELASTIC_PASSWORD</code></td><td>from <code>elasticsearch-credentials</code> secret</td><td>Sets the built-in <code>elastic</code> superuser password at first boot.</td></tr>
+  </table>
+
+  <h4>Password-sync + index-template sidecar</h4>
+  <p>A <code>curlimages/curl:8.7.1</code> sidecar runs in the same pod and does four things on every pod start:</p>
+  <div class="seq">
+    <div class="seq-row"><div class="seq-num">1</div><div class="seq-text">Polls <code>GET /_cluster/health</code> until ES responds — ensures the main container is ready before taking action.</div></div>
+    <div class="seq-row"><div class="seq-num">2</div><div class="seq-text"><strong>Password sync</strong> — calls <code>PUT /_security/user/elastic/_password</code> with the value from the K8s secret. If the password already matches, ES returns 200. If a PVC was restored and the password drifted, this resets it. Handles 401 as a fallback.</div></div>
+    <div class="seq-row"><div class="seq-num">3</div><div class="seq-text"><strong>Index template registration</strong> — <code>PUT /_index_template/k8s-single-node</code> with <code>index_patterns: ["k8s-*"]</code>, <code>priority: 200</code>, <code>number_of_replicas: 0</code>. Priority 200 beats the built-in <code>logs</code> template (100) and Logstash's own template (1). All future <code>k8s-*</code> indices are created green.</div></div>
+    <div class="seq-row"><div class="seq-num">4</div><div class="seq-text"><strong>Patch existing indices</strong> — <code>PUT /k8s-*/_settings { "number_of_replicas": 0 }</code> brings any already-created indices from yellow to green without requiring a delete/recreate.</div></div>
+  </div>
+  <p>After step 4 the sidecar calls <code>exec sleep infinity</code> so it never restarts (a restarting sidecar in a running pod would be disruptive).</p>
+
+  
+  <h3>4.4 Kibana Token Automation (pre-install-job)</h3>
+  <p>This is the core of the "zero manual steps" requirement. Kibana 8+ uses an Elasticsearch <em>service account token</em> rather than a username/password to authenticate to ES. Generating this token used to require a manual <code>elasticsearch-service-tokens create</code> command. The following automation eliminates that entirely.</p>
+
+  <h4>create-kibana-token Job</h4>
+  <table>
+    <tr><th>Container</th><th>Role</th></tr>
+    <tr><td>initContainer: <code>wait-for-credentials</code></td><td>Polls until <code>kubectl get secret elasticsearch-credentials -o jsonpath='{.data.password}'</code> returns a non-empty value. This waits for ESO to finish syncing from Vault.</td></tr>
+    <tr><td>initContainer: <code>wait-for-elasticsearch</code></td><td>First checks TCP port 9200 with <code>nc -z</code>, then polls <code>GET /_security/user/elastic</code> with the password. This ensures ES is fully initialised, not just accepting TCP connections.</td></tr>
+    <tr><td>container: <code>create-token</code></td><td>Runs <code>node /helm-scripts/manage-es-token.js create</code>. The script deletes any existing token (idempotent), calls <code>POST /_security/service/elastic/kibana/credential/token/kibana-token</code>, and writes the returned token value into the K8s secret <code>kibana-es-serviceaccount-token</code>.</td></tr>
+  </table>
+
+  <h4>manage-es-token.js — what the script does</h4>
+  <pre>// create mode:
+DELETE /_security/service/elastic/kibana/credential/token/kibana-token  // idempotent
+POST   /_security/service/elastic/kibana/credential/token/kibana-token  // get new token
+→ write token.value into K8s Secret "kibana-es-serviceaccount-token" key "password"
+
+// clean mode (post-delete Helm hook):
+DELETE /_security/service/elastic/kibana/credential/token/kibana-token
+DELETE K8s Secret "kibana-es-serviceaccount-token"</pre>
+
+  <p>The script uses the in-cluster service account token (<code>/run/secrets/kubernetes.io/serviceaccount/token</code>) and the cluster CA to authenticate against the K8s API — no kubeconfig needed.</p>
+
+  <h4>RBAC for the token job</h4>
+  <p>The <code>kibana-token-sa</code> ServiceAccount is granted a Role with <code>get / create / patch / delete</code> on <code>secrets</code> in the <code>observability</code> namespace only — least-privilege.</p>
+
+  
+  <h3>4.5 Kibana (Deployment)</h3>
+  <p><strong>Image:</strong> <code>elastic/kibana:9.1.7</code></p>
+  <p>The Kibana pod receives two critical environment variables:</p>
+  <table>
+    <tr><th>Env var</th><th>Source</th><th>Effect</th></tr>
+    <tr><td><code>ELASTICSEARCH_HOSTS</code></td><td>hardcoded cluster-DNS URL</td><td>Points Kibana at ES over plain HTTP</td></tr>
+    <tr><td><code>ELASTICSEARCH_SERVICEACCOUNTTOKEN</code></td><td><code>kibana-es-serviceaccount-token</code> secret, key <code>password</code></td><td>Authenticates Kibana to ES — no username/password needed, no login prompt</td></tr>
+  </table>
+  <p>The minimal <code>kibana.yml</code> sets only <code>server.host: "0.0.0.0"</code> and the ES hosts. Everything else is handled by env vars. Kibana is exposed on <strong>NodePort 30201</strong> → accessible at <code>http://&lt;node-ip&gt;:30201</code>.</p>
+
+  
+  <h3>4.6 Kibana Setup Job (kibana-setup-job)</h3>
+  <p>After Kibana starts, a second Job runs <code>setup.sh</code> via <code>curlimages/curl</code> to provision all Kibana objects automatically.</p>
+
+  <h4>What setup.sh does</h4>
+  <div class="seq">
+    <div class="seq-row"><div class="seq-num">0</div><div class="seq-text"><strong>Delete stale data views</strong> — removes <code>logs-k8s-star</code>, <code>logs-error-star</code>, <code>logs-misc-star</code> if they exist (404-safe). These were the old names before the index rename.</div></div>
+    <div class="seq-row"><div class="seq-num">1</div><div class="seq-text"><strong>Data view: <code>k8s-logs-*</code></strong> — default data view, time field <code>@timestamp</code>. Covers all per-namespace indices.</div></div>
+    <div class="seq-row"><div class="seq-num">2</div><div class="seq-text"><strong>Data view: <code>k8s-error-*</code></strong> — dedicated view for error/fatal/critical events only.</div></div>
+    <div class="seq-row"><div class="seq-num">3</div><div class="seq-text"><strong>Data view: <code>k8s-misc-*</code></strong> — catch-all for logs without a namespace.</div></div>
+    <div class="seq-row"><div class="seq-num">4</div><div class="seq-text"><strong>Set default data view</strong> — calls the <code>/api/saved_objects/config/9.1.7</code> uiSettings API to set <code>k8s-logs-star</code> as the default, so Discover opens immediately on the right data.</div></div>
+    <div class="seq-row"><div class="seq-num">5</div><div class="seq-text"><strong>Dashboard: Kubernetes Logs Overview</strong> — pre-built histogram visualisation of log events by namespace over time.</div></div>
+    <div class="seq-row"><div class="seq-num">6</div><div class="seq-text"><strong>Saved search: All Kubernetes Logs</strong> — columns <code>k8s_namespace</code>, <code>k8s_pod</code>, <code>k8s_container</code>, <code>log_level</code>, <code>message</code>. Sorted newest first.</div></div>
+    <div class="seq-row"><div class="seq-num">7</div><div class="seq-text"><strong>Saved search: Error Logs</strong> — same columns minus <code>log_level</code>, bound to the <code>k8s-error-*</code> data view.</div></div>
+  </div>
+
+  <div class="alert alert-info">
+    <div class="alert-title">Self-healing: ttlSecondsAfterFinished</div>
+    The Job has <code>ttlSecondsAfterFinished: 30</code>. Kubernetes deletes it 30 seconds after it completes. On the next ArgoCD sync, ArgoCD sees the Job is missing and recreates it, which re-runs the script. All operations are <strong>idempotent</strong> (saved objects use <code>?overwrite=true</code>), so re-running is always safe.
+  </div>
+
+  
+  <h2>5. Index Strategy</h2>
+
+  <table>
+    <tr>
+      <th>Index pattern</th>
+      <th>Example index name</th>
+      <th>Contains</th>
+      <th>Kibana data view</th>
+    </tr>
+    <tr>
+      <td><code>k8s-logs-{ns}-YYYY.MM.dd</code></td>
+      <td><code>k8s-logs-argocd-2026.07.25</code></td>
+      <td>All logs from namespace <em>argocd</em></td>
+      <td><span class="badge badge-blue">k8s-logs-* (default)</span></td>
+    </tr>
+    <tr>
+      <td><code>k8s-error-YYYY.MM.dd</code></td>
+      <td><code>k8s-error-2026.07.25</code></td>
+      <td>error / fatal / critical level logs from all namespaces</td>
+      <td><span class="badge badge-red">k8s-error-*</span></td>
+    </tr>
+    <tr>
+      <td><code>k8s-misc-YYYY.MM.dd</code></td>
+      <td><code>k8s-misc-2026.07.25</code></td>
+      <td>Logs without a Kubernetes namespace (non-k8s sources)</td>
+      <td><span class="badge">k8s-misc-*</span></td>
+    </tr>
+  </table>
+
+  <h3>Index template: k8s-single-node (priority 200)</h3>
+  <pre>PUT /_index_template/k8s-single-node
+{
+  "index_patterns": ["k8s-*"],
+  "priority": 200,
+  "template": {
+    "settings": { "number_of_replicas": 0 }
+  }
+}</pre>
+  <p>This template is registered by the ES sidecar on every pod start. Priority 200 beats:</p>
+  <ul>
+    <li><code>logs</code> built-in template — priority 100 (would force data-stream mode)</li>
+    <li>Logstash-managed templates — priority 1</li>
+  </ul>
+  <p>Result: all <code>k8s-*</code> indices are plain date-based indices with <code>replicas=0</code> → always <span class="badge badge-green">green</span> on a single-node cluster.</p>
+
+  
+  <h2>6. Service Ports</h2>
+
+  <table>
+    <tr><th>Component</th><th>Internal (cluster DNS)</th><th>NodePort (external)</th></tr>
+    <tr><td>Elasticsearch</td><td><code>elasticsearch.observability.svc.cluster.local:9200</code></td><td>30092</td></tr>
+    <tr><td>Logstash (Beats)</td><td><code>logstash.observability.svc.cluster.local:5044</code></td><td>30044</td></tr>
+    <tr><td>Kibana</td><td><code>kibana.observability.svc.cluster.local:5601</code></td><td>30201</td></tr>
+  </table>
+
+  
+  <h2>7. Full Startup Sequence (first deploy)</h2>
+
+  <div class="seq">
+    <div class="seq-row"><div class="seq-num">1</div><div class="seq-text">ArgoCD detects a new commit → applies all manifests to the <code>observability</code> namespace.</div></div>
+    <div class="seq-row"><div class="seq-num">2</div><div class="seq-text">ESO reads <code>vault-secretstore</code> and creates the <code>elasticsearch-credentials</code> K8s Secret with the password from Vault.</div></div>
+    <div class="seq-row"><div class="seq-num">3</div><div class="seq-text">Elasticsearch StatefulSet starts. On first start it sets up its data directory, creates the <code>elastic</code> user with the provided password, and disables TLS.</div></div>
+    <div class="seq-row"><div class="seq-num">4</div><div class="seq-text">The <code>password-sync</code> sidecar detects ES is healthy → syncs the password → registers the <code>k8s-single-node</code> index template → sleeps.</div></div>
+    <div class="seq-row"><div class="seq-num">5</div><div class="seq-text">Filebeat DaemonSet starts on the node. It begins harvesting <code>/var/log/containers/*.log</code>, enriches each event with Kubernetes metadata, and streams to Logstash:5044.</div></div>
+    <div class="seq-row"><div class="seq-num">6</div><div class="seq-text">Logstash Deployment starts, loads its pipeline, and begins receiving Beats events. The filter stage enriches them; the output stage writes to <code>k8s-logs-{namespace}-YYYY.MM.dd</code> indices.</div></div>
+    <div class="seq-row"><div class="seq-num">7</div><div class="seq-text"><code>create-kibana-token</code> Job: waits for credentials secret → waits for ES security API → calls <code>manage-es-token.js create</code> → stores the service account token in the <code>kibana-es-serviceaccount-token</code> secret.</div></div>
+    <div class="seq-row"><div class="seq-num">8</div><div class="seq-text">Kibana Deployment starts. It reads the token secret and connects to ES immediately — no interactive login or token copy needed.</div></div>
+    <div class="seq-row"><div class="seq-num">9</div><div class="seq-text"><code>kibana-setup</code> Job: waits for Kibana <code>/api/status</code> to return <code>"level":"available"</code> → deletes any stale data views → creates <code>k8s-logs-*</code> / <code>k8s-error-*</code> / <code>k8s-misc-*</code> data views, dashboard, and saved searches.</div></div>
+    <div class="seq-row"><div class="seq-num">10</div><div class="seq-text">After 30 s the setup Job self-deletes. Kibana is fully usable at <code>http://&lt;node-ip&gt;:30201</code>.</div></div>
+  </div>
+
+  
+  <h2>8. Problems Encountered &amp; How They Were Solved</h2>
+
+  <table>
+    <tr><th>Problem</th><th>Root Cause</th><th>Fix</th></tr>
+    <tr>
+      <td>Filebeat not collecting logs</td>
+      <td>Only <code>/var/log/containers</code> was mounted; the symlink chain requires <code>/var/log/pods</code> and <code>/var/lib/docker/containers</code> too. Also missing <code>NODE_NAME</code> env var for k8s metadata processor.</td>
+      <td>Added both missing volume mounts and the <code>NODE_NAME</code> env var via <code>fieldRef: spec.nodeName</code>.</td>
+    </tr>
+    <tr>
+      <td>Logstash HTTP 400 writing to ES</td>
+      <td>ES 9 built-in <code>logs</code> index template (priority 100) intercepts <code>logs-*-*</code> patterns and forces data-stream semantics. Data streams reject plain <code>index</code> write operations.</td>
+      <td>Renamed all output indices from <code>logs-k8s-*</code> / <code>logs-error-*</code> / <code>logs-misc-*</code> to <code>k8s-logs-*</code> / <code>k8s-error-*</code> / <code>k8s-misc-*</code>.</td>
+    </tr>
+    <tr>
+      <td>All indices yellow</td>
+      <td>ES defaults to <code>number_of_replicas: 1</code> but there is only one node — the replica shard can never be placed.</td>
+      <td>Added <code>k8s-single-node</code> index template (priority 200, replicas=0) registered by the sidecar. Also patches existing indices via <code>PUT /k8s-*/_settings</code>.</td>
+    </tr>
+    <tr>
+      <td>Kibana needs manual token creation</td>
+      <td>ES service account tokens are not stored anywhere accessible — they must be generated via the ES API and injected as a K8s secret.</td>
+      <td>Automated via <code>create-kibana-token</code> Job + <code>manage-es-token.js</code> Node.js script. Fully idempotent: deletes old token, creates new one, writes to K8s secret.</td>
+    </tr>
+    <tr>
+      <td>Kibana data views showed no fields</td>
+      <td>The setup Job had completed with the old index names (<code>logs-k8s-*</code>). After the rename it stayed <code>Completed</code> forever — ArgoCD never re-ran it.</td>
+      <td>Added <code>ttlSecondsAfterFinished: 30</code> so the Job self-deletes and is recreated on the next sync. Added a delete step in <code>setup.sh</code> to remove stale data views before creating correct ones.</td>
+    </tr>
+    <tr>
+      <td>Password drift after PVC restore</td>
+      <td>ES stores its own hashed password in the data directory. After restoring from a PVC snapshot the stored hash may not match the current secret.</td>
+      <td>The <code>password-sync</code> sidecar forces a password reset via <code>PUT /_security/user/elastic/_password</code> on every pod start.</td>
+    </tr>
+    <tr>
+      <td>TLS errors on fresh cluster</td>
+      <td>ES 9 auto-generates self-signed certificates and enables TLS on first boot when no config overrides are set.</td>
+      <td>Set <code>xpack.security.http.ssl.enabled: false</code> and <code>xpack.security.transport.ssl.enabled: false</code> via env vars on the StatefulSet.</td>
+    </tr>
+  </table>
+
+  
+  <h2>9. Useful Cluster Commands</h2>
+
+  <h4>Check all component status</h4>
+  <pre>kubectl get all -n observability</pre>
+
+  <h4>Watch Filebeat harvesting logs</h4>
+  <pre>kubectl logs -n observability -l app=filebeat --tail=50 -f</pre>
+
+  <h4>Watch Logstash pipeline</h4>
+  <pre>kubectl logs -n observability -l app=logstash --tail=50 -f</pre>
+
+  <h4>Watch ES sidecar (password sync + index template)</h4>
+  <pre>kubectl logs -n observability elasticsearch-0 -c password-sync</pre>
+
+  <h4>Check index health in ES</h4>
+  <pre>kubectl exec -n observability elasticsearch-0 -- \
+  curl -s -u "elastic:$(kubectl get secret elasticsearch-credentials \
+    -n observability -o jsonpath='{.data.password}' | base64 -d)" \
+  "http://localhost:9200/_cat/indices/k8s-*?v&amp;h=health,status,index,docs.count,store.size"</pre>
+
+  <h4>Check Kibana token job logs</h4>
+  <pre>kubectl logs -n observability job/create-kibana-token -c create-token</pre>
+
+  <h4>Force re-run of Kibana setup</h4>
+  <pre>kubectl delete job kibana-setup -n observability --ignore-not-found
+argocd app sync &lt;app-name&gt;</pre>
+
+  <h4>Check Kibana setup job logs</h4>
+  <pre>kubectl logs -n observability job/kibana-setup -c setup</pre>
+
+  
+  <h2>10. What You See in Kibana</h2>
+  <p>After full startup, open <strong><code>http://&lt;node-ip&gt;:30201</code></strong>. You will find:</p>
+  <ul>
+    <li><strong>Stack Management → Data Views</strong>: <code>k8s-logs-*</code> (default), <code>k8s-error-*</code>, <code>k8s-misc-*</code> — each with all enriched fields indexed.</li>
+    <li><strong>Discover</strong>: live stream of all container logs, searchable by <code>k8s_namespace</code>, <code>k8s_pod</code>, <code>k8s_container</code>, <code>log_level</code>, <code>message</code>.</li>
+    <li><strong>Dashboard → Kubernetes Logs Overview</strong>: histogram of log events split by namespace.</li>
+    <li><strong>Discover → Saved Searches</strong>: "All Kubernetes Logs" and "Error Logs".</li>
+  </ul>
+
+  <footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>
