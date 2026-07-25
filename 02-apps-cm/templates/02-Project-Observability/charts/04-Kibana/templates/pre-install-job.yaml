@@ -38,8 +38,8 @@ spec:
             - |
               echo "Waiting for Elasticsearch at elasticsearch.observability.svc.cluster.local:9200..."
               until wget -qO- http://elasticsearch.observability.svc.cluster.local:9200 >/dev/null 2>&1; do
-                echo "  Elasticsearch not ready yet, retrying in 10s..."
-                sleep 10
+                echo "  Elasticsearch not ready yet, retrying in 3s..."
+                sleep 3
               done
               echo "Elasticsearch is up."
       containers:
