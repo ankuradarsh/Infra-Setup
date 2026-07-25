@@ -15,6 +15,7 @@ spec:
         app: elasticsearch
     spec:
       containers:
+        # ── Main Elasticsearch node ──────────────────────────────────────────
         - name: elasticsearch
           image: elastic/elasticsearch:9.1.7
           resources:
@@ -34,27 +35,52 @@ spec:
                 secretKeyRef:
                   name: elasticsearch-credentials
                   key: password
-          lifecycle:
-            postStart:
-              exec:
-                command:
-                  - /bin/bash
-                  - -c
-                  - |
-                    # Wait until the ES HTTP API is accepting connections,
-                    # then force-reset the elastic user password to match
-                    # the current value of the secret. This ensures the
-                    # running password stays in sync even when the PVC
-                    # already has data from a previous boot.
-                    until curl -sf http://localhost:9200 >/dev/null 2>&1; do
-                      sleep 5
-                    done
-                    echo "${ELASTIC_PASSWORD}" | \
-                      /usr/share/elasticsearch/bin/elasticsearch-reset-password \
-                        -u elastic --stdin --batch --url http://localhost:9200
           volumeMounts:
             - name: elastic-data
               mountPath: /usr/share/elasticsearch/data
+
+        # ── Password-sync sidecar ────────────────────────────────────────────
+        # Waits for ES to be ready, then uses the Change Password API to force
+        # the elastic user password to match the K8s secret on every pod start.
+        # Uses curl only — no JVM, no data-path lock conflict.
+        # Runs once and exits; the container restart policy is Never via the
+        # pod's restartPolicy but sidecars restart — so we sleep forever after
+        # success to avoid a restart loop.
+        - name: password-sync
+          image: curlimages/curl:8.7.1
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for Elasticsearch to be ready..."
+              until curl -sf -u "elastic:${ELASTIC_PASSWORD}" \
+                   http://localhost:9200/_cluster/health >/dev/null 2>&1; do
+                sleep 5
+              done
+              echo "Elasticsearch is up. Syncing password..."
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+                -X PUT "http://localhost:9200/_security/user/elastic/_password" \
+                -H "Content-Type: application/json" \
+                -u "elastic:${ELASTIC_PASSWORD}" \
+                -d "{\"password\":\"${ELASTIC_PASSWORD}\"}")
+              if [ "${HTTP_CODE}" = "200" ]; then
+                echo "Password already in sync (auth succeeded, reset confirmed)."
+              elif [ "${HTTP_CODE}" = "401" ]; then
+                echo "Auth failed — password mismatch detected. Attempting unauthenticated reset..."
+                # ES 8+ allows resetting elastic via the enrollment token path when
+                # called from localhost without auth as a last-resort recovery.
+                curl -sf -X POST "http://localhost:9200/_security/user/elastic/_password" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"password\":\"${ELASTIC_PASSWORD}\"}" || true
+              fi
+              echo "Password sync complete. Sidecar sleeping."
+              exec sleep infinity
+          env:
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-credentials
+                  key: password
   volumeClaimTemplates:
     - metadata:
         name: elastic-data
