@@ -3,6 +3,8 @@ kind: DaemonSet
 metadata:
   name: filebeat
   namespace: observability
+  labels:
+    app: filebeat
 spec:
   selector:
     matchLabels:
@@ -13,23 +15,69 @@ spec:
         app: filebeat
     spec:
       serviceAccountName: filebeat
+      terminationGracePeriodSeconds: 30
+      hostNetwork: false
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: filebeat
           image: docker.elastic.co/beats/filebeat:8.10.2
+          args: ["-c", "/etc/filebeat.yml", "-e"]
+          env:
+            # Required by add_kubernetes_metadata processor to identify the node
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          securityContext:
+            runAsUser: 0          # needs root to read /var/log/containers
+          resources:
+            requests:
+              memory: "100Mi"
+              cpu: "100m"
+            limits:
+              memory: "200Mi"
+              cpu: "200m"
           volumeMounts:
-            - name: varlog
-              mountPath: /var/log
+            # Symlink directory — /var/log/containers/*.log → /var/log/pods/.../0.log
+            - name: varlogcontainers
+              mountPath: /var/log/containers
+              readOnly: true
+            # Pod log directories with the 0.log symlinks
+            - name: varlogpods
+              mountPath: /var/log/pods
+              readOnly: true
+            # Actual Docker JSON log files (symlinks in /var/log/pods point here)
+            - name: dockercontainers
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            # Filebeat config file
             - name: filebeat-config
-              mountPath: /usr/share/filebeat/filebeat.yml
+              mountPath: /etc/filebeat.yml
               subPath: filebeat.yml
+              readOnly: true
+            # Filebeat registry — persists read offsets across restarts
             - name: filebeat-data
               mountPath: /usr/share/filebeat/data
       volumes:
-        - name: varlog
+        - name: varlogcontainers
           hostPath:
-            path: /var/log
+            path: /var/log/containers
+        - name: varlogpods
+          hostPath:
+            path: /var/log/pods
+        - name: dockercontainers
+          hostPath:
+            path: /var/lib/docker/containers
         - name: filebeat-config
           configMap:
             name: filebeat-config
+            defaultMode: 0644
         - name: filebeat-data
-          emptyDir: {}
+          hostPath:
+            # Use hostPath so the registry survives pod restarts (no re-shipping)
+            path: /var/lib/filebeat-data
+            type: DirectoryOrCreate
