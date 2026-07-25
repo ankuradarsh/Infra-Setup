@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-setup-script
+  namespace: observability
+data:
+  setup.sh: |
+    #!/bin/sh
+    set -e
+
+    KIBANA="http://kibana.observability.svc.cluster.local:5601"
+    AUTH="-u elastic:${ELASTIC_PASSWORD}"
+    HEADERS='-H "kbn-xsrf: true" -H "Content-Type: application/json"'
+
+    echo "==> Waiting for Kibana to be ready..."
+    until curl -sf $AUTH "${KIBANA}/api/status" | grep -q '"level":"available"' 2>/dev/null; do
+      echo "    Kibana not ready yet, retrying in 10s..."
+      sleep 10
+    done
+    echo "    Kibana is ready."
+
+    # ─── Helper: create or update a Saved Object ────────────────────────────
+    upsert() {
+      TYPE=$1; ID=$2; BODY=$3
+      CODE=$(curl -s -o /dev/null -w "%{http_code}" $AUTH \
+        -X POST "${KIBANA}/api/saved_objects/${TYPE}/${ID}?overwrite=true" \
+        -H "kbn-xsrf: true" -H "Content-Type: application/json" \
+        -d "${BODY}")
+      echo "    ${TYPE}/${ID} → HTTP ${CODE}"
+    }
+
+    # ─── 1. Create Index Pattern: all k8s logs ───────────────────────────────
+    echo "==> Creating index pattern: k8s-logs-*"
+    upsert "index-pattern" "k8s-logs-star" '{
+      "attributes": {
+        "title":         "k8s-logs-*",
+        "timeFieldName": "@timestamp"
+      }
+    }'
+
+    # ─── 2. Create Index Pattern: error logs ────────────────────────────────
+    echo "==> Creating index pattern: k8s-error-*"
+    upsert "index-pattern" "k8s-error-star" '{
+      "attributes": {
+        "title":         "k8s-error-*",
+        "timeFieldName": "@timestamp"
+      }
+    }'
+
+    # ─── 3. Create Index Pattern: misc logs ─────────────────────────────────
+    echo "==> Creating index pattern: k8s-misc-*"
+    upsert "index-pattern" "k8s-misc-star" '{
+      "attributes": {
+        "title":         "k8s-misc-*",
+        "timeFieldName": "@timestamp"
+      }
+    }'
+
+    # ─── 4. Set default index pattern (Kibana 8/9 uiSettings API) ───────────
+    echo "==> Setting default index pattern to k8s-logs-*"
+    curl -s -o /dev/null $AUTH \
+      -X POST "${KIBANA}/api/saved_objects/config/9.1.7?overwrite=true" \
+      -H "kbn-xsrf: true" -H "Content-Type: application/json" \
+      -d '{"attributes":{"defaultIndex":"k8s-logs-star"}}' || true
+    echo "    Default index pattern set."
+
+    # ─── 5. Create Dashboard: Kubernetes Logs Overview ──────────────────────
+    echo "==> Creating dashboard: Kubernetes Logs Overview"
+    upsert "dashboard" "k8s-logs-overview" '{
+      "attributes": {
+        "title": "Kubernetes Logs Overview",
+        "description": "Live view of all Kubernetes container logs by namespace, pod, and log level.",
+        "panelsJSON": "[{\"version\":\"8.10.2\",\"type\":\"visualization\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{\"savedVis\":{\"title\":\"Log Events by Namespace\",\"description\":\"\",\"type\":\"histogram\",\"params\":{\"type\":\"histogram\",\"grid\":{\"categoryLines\":false},\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"type\":\"category\",\"position\":\"bottom\",\"show\":true,\"scale\":{\"type\":\"linear\"},\"labels\":{\"show\":true,\"truncate\":100},\"title\":{}}],\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"name\":\"LeftAxis-1\",\"type\":\"value\",\"position\":\"left\",\"show\":true,\"labels\":{\"show\":true,\"rotate\":0,\"filter\":false,\"truncate\":100},\"scale\":{\"type\":\"linear\",\"mode\":\"normal\"},\"title\":{\"text\":\"Count\"}}],\"seriesParams\":[{\"show\":true,\"type\":\"histogram\",\"mode\":\"stacked\",\"data\":{\"label\":\"Count\",\"id\":\"1\"},\"valueAxis\":\"ValueAxis-1\",\"drawLinesBetweenPoints\":true,\"lineWidth\":2,\"interpolate\":\"linear\",\"showCircles\":true}],\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"times\":[],\"addTimeMarker\":false,\"thresholdLine\":{\"show\":false,\"value\":10,\"width\":1,\"style\":\"full\",\"color\":\"#E7664C\"},\"labels\":{}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"useNormalizedEsInterval\":true,\"scaleMetricValues\":false,\"interval\":\"auto\",\"drop_partials\":false,\"min_doc_count\":1,\"extended_bounds\":{}}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"k8s_namespace\",\"orderBy\":\"1\",\"order\":\"desc\",\"size\":10,\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\"}}]}}},{\"version\":\"8.10.2\",\"type\":\"visualization\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":15,\"i\":\"2\"},\"panelIndex\":\"2\",\"embeddableConfig\":{\"savedVis\":{\"title\":\"Log Level Distribution\",\"type\":\"pie\",\"params\":{\"type\":\"pie\",\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"isDonut\":true,\"labels\":{\"show\":false,\"values\":true,\"last_level\":true,\"truncate\":100}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"log_level\",\"size\":10,\"order\":\"desc\",\"orderBy\":\"1\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\"}}]}}}]",
+        "optionsJSON": "{\"useMargins\":true,\"syncColors\":false,\"hidePanelTitles\":false}",
+        "timeRestore": false,
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"query\":{\"query\":\"\",\"language\":\"kuery\"},\"filter\":[]}"
+        }
+      }
+    }'
+
+    # ─── 6. Create Discover Search: All K8s Logs ────────────────────────────
+    echo "==> Creating saved search: All Kubernetes Logs"
+    upsert "search" "all-k8s-logs" '{
+      "attributes": {
+        "title": "All Kubernetes Logs",
+        "description": "All container logs enriched with Kubernetes metadata",
+        "columns": ["k8s_namespace","k8s_pod","k8s_container","log_level","message"],
+        "sort": [["@timestamp","desc"]],
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"k8s-logs-star\",\"query\":{\"query\":\"\",\"language\":\"kuery\"},\"filter\":[]}"
+        }
+      }
+    }'
+
+    # ─── 7. Create Discover Search: Error Logs ──────────────────────────────
+    echo "==> Creating saved search: Error Logs"
+    upsert "search" "error-logs" '{
+      "attributes": {
+        "title": "Error Logs",
+        "description": "All error, fatal and critical log events",
+        "columns": ["k8s_namespace","k8s_pod","k8s_container","message"],
+        "sort": [["@timestamp","desc"]],
+        "kibanaSavedObjectMeta": {
+          "searchSourceJSON": "{\"index\":\"k8s-error-star\",\"query\":{\"query\":\"\",\"language\":\"kuery\"},\"filter\":[]}"
+        }
+      }
+    }'
+
+    echo ""
+    echo "==> Kibana setup complete."
+    echo "    Index patterns : k8s-logs-*  |  k8s-error-*  |  k8s-misc-*"
+    echo "    Dashboard      : Kubernetes Logs Overview"
+    echo "    Saved searches : All Kubernetes Logs  |  Error Logs"

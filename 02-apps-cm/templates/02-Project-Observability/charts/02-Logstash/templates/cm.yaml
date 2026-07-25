@@ -14,89 +14,116 @@ data:
 
     filter {
 
-      # -----------------------------
-      # Kubernetes enrichment safety
-      # -----------------------------
+      # ── Promote Kubernetes metadata to flat fields ─────────────────────────
       if [kubernetes] {
-
         mutate {
           add_field => {
-            "namespace" => "%{[kubernetes][namespace]}"
-            "pod"       => "%{[kubernetes][pod][name]}"
-            "container" => "%{[kubernetes][container][name]}"
-            "node"      => "%{[kubernetes][node][name]}"
+            "k8s_namespace" => "%{[kubernetes][namespace]}"
+            "k8s_pod"       => "%{[kubernetes][pod][name]}"
+            "k8s_container" => "%{[kubernetes][container][name]}"
+            "k8s_node"      => "%{[kubernetes][node][name]}"
           }
         }
+        # Promote labels (app, version, etc.) if present
+        if [kubernetes][labels][app] {
+          mutate { add_field => { "app" => "%{[kubernetes][labels][app]}" } }
+        }
+        if [kubernetes][labels][version] {
+          mutate { add_field => { "version" => "%{[kubernetes][labels][version]}" } }
+        }
       }
 
-      # -----------------------------
-      # Parse JSON logs if present
-      # -----------------------------
-      if [message] =~ "^{.*}$" {
+      # ── Parse JSON log lines (apps that log structured JSON) ───────────────
+      if [message] =~ /^\s*\{/ {
         json {
           source => "message"
-          target => "json"
+          target => "structured"
           skip_on_invalid_json => true
         }
-      }
-
-      # -----------------------------
-      # Clean noisy fields
-      # -----------------------------
-      mutate {
-        remove_field => ["agent", "ecs", "input", "log", "host"]
-      }
-
-      # -----------------------------
-      # Handle log levels
-      # -----------------------------
-      if [level] {
-        mutate {
-          lowercase => ["level"]
+        # Promote log level from structured payload
+        if [structured][level] {
+          mutate { add_field => { "log_level" => "%{[structured][level]}" } }
         }
+        if [structured][severity] {
+          mutate { add_field => { "log_level" => "%{[structured][severity]}" } }
+        }
+        if [structured][log.level] {
+          mutate { add_field => { "log_level" => "%{[structured][log.level]}" } }
+        }
+      }
+
+      # ── Normalise log level from plain-text logs ───────────────────────────
+      if ![log_level] {
+        if [log][level] {
+          mutate { add_field => { "log_level" => "%{[log][level]}" } }
+        } else if [level] {
+          mutate { add_field => { "log_level" => "%{[level]}" } }
+        } else {
+          mutate { add_field => { "log_level" => "info" } }
+        }
+      }
+      mutate { lowercase => ["log_level"] }
+
+      # ── Parse @timestamp from structured payload when available ────────────
+      if [structured][@timestamp] {
+        date {
+          match => ["[structured][@timestamp]", "ISO8601"]
+          target => "@timestamp"
+        }
+      }
+
+      # ── Drop internal system/infra log noise ──────────────────────────────
+      if [k8s_namespace] == "kube-system" or [k8s_namespace] == "kube-public" {
+        drop {}
+      }
+
+      # ── Remove low-value shipping fields ──────────────────────────────────
+      mutate {
+        remove_field => ["agent", "ecs", "input", "log", "host", "beat", "tags"]
       }
     }
 
     output {
 
-      # ===========================
-      # ERROR INDEX (SEPARATION)
-      # ===========================
-      if [level] == "error" or [log][level] == "error" {
+      # ── Shared ES connection settings ─────────────────────────────────────
+      # ilm_enabled false + manage_template false = plain date-based indices.
+      # Index names intentionally avoid the "logs-*-*" pattern so that the
+      # ES 9 built-in "logs" index template (priority 100) does NOT intercept
+      # them and force data-stream semantics / replica=1 on single-node.
+
+      # ── Error logs → dedicated index for alerting ─────────────────────────
+      if [log_level] == "error" or [log_level] == "fatal" or [log_level] == "critical" {
         elasticsearch {
-          hosts => ["http://elasticsearch.observability.svc.cluster.local:9200"]
-          index => "logs-error-%{+YYYY.MM.dd}"
-          user => "elastic"
+          hosts    => ["http://elasticsearch.observability.svc.cluster.local:9200"]
+          index    => "k8s-error-%{+YYYY.MM.dd}"
+          user     => "elastic"
           password => "${ELASTIC_PASSWORD}"
+          manage_template => false
+          ilm_enabled     => false
         }
       }
 
-      # ===========================
-      # KUBERNETES LOGS (MAIN)
-      # ===========================
-      else if [namespace] {
+      # ── Per-namespace index for Kubernetes workload logs ──────────────────
+      else if [k8s_namespace] {
         elasticsearch {
-          hosts => ["http://elasticsearch.observability.svc.cluster.local:9200"]
-          index => "logs-k8s-%{namespace}-%{+YYYY.MM.dd}"
-          user => "elastic"
+          hosts    => ["http://elasticsearch.observability.svc.cluster.local:9200"]
+          index    => "k8s-logs-%{k8s_namespace}-%{+YYYY.MM.dd}"
+          user     => "elastic"
           password => "${ELASTIC_PASSWORD}"
+          manage_template => false
+          ilm_enabled     => false
         }
       }
 
-      # ===========================
-      # FALLBACK INDEX
-      # ===========================
+      # ── Catch-all ─────────────────────────────────────────────────────────
       else {
         elasticsearch {
-          hosts => ["http://elasticsearch.observability.svc.cluster.local:9200"]
-          index => "logs-misc-%{+YYYY.MM.dd}"
-          user => "elastic"
+          hosts    => ["http://elasticsearch.observability.svc.cluster.local:9200"]
+          index    => "k8s-misc-%{+YYYY.MM.dd}"
+          user     => "elastic"
           password => "${ELASTIC_PASSWORD}"
+          manage_template => false
+          ilm_enabled     => false
         }
-      }
-
-      # Debug (VERY useful in early stage)
-      stdout {
-        codec => rubydebug
       }
     }
