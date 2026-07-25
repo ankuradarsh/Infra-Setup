@@ -1,41 +1,40 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: create-kibana-token
+  name: delete-kibana-token
   namespace: observability
+  annotations:
+    "helm.sh/hook": post-delete
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
+  backoffLimit: 3
   template:
     spec:
       serviceAccountName: kibana-token-sa
       restartPolicy: Never
       containers:
-      - name: create-token
-        image: elastic/kibana:9.1.7
-        command: ["/usr/share/kibana/node/bin/node"]
-        args: ["/usr/share/kibana/helm-scripts/manage-es-token.js","clean"]
+      - name: delete-token
+        image: node:20-alpine
+        command: ["node"]
+        args:
+          - /helm-scripts/manage-es-token.js
+          - clean
         env:
         - name: ELASTICSEARCH_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: elasticsearch-credentials
-              key: username
+          value: elastic
         - name: ELASTICSEARCH_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: elasticsearch-credentials
+              name: kibana-token
               key: password
-        - name: ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES
-          value: /usr/share/kibana/config/certs/ca.crt
+        - name: ELASTICSEARCH_URL
+          value: "http://elasticsearch.observability.svc.cluster.local:9200/_security/service/elastic/kibana/credential/token/kibana-token"
         volumeMounts:
         - name: scripts
-          mountPath: /usr/share/kibana/helm-scripts
-        - name: certs
-          mountPath: /usr/share/kibana/config/certs
+          mountPath: /helm-scripts
       volumes:
       - name: scripts
         configMap:
           name: kibana-helm-scripts
           defaultMode: 0755
-      - name: certs
-        secret:
-          secretName: elasticsearch-certs

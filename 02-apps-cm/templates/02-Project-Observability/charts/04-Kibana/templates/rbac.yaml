@@ -12,7 +12,7 @@ metadata:
 rules:
 - apiGroups: [""]
   resources: ["secrets"]
-  verbs: ["create","delete"]
+  verbs: ["get", "create", "patch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -22,6 +22,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: kibana-token-sa
+  namespace: observability
 roleRef:
   kind: Role
   name: kibana-token-role

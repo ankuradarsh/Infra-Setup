@@ -20,107 +20,141 @@ data:
     // Detect protocol
     const esUrl = getEnvVar('ELASTICSEARCH_URL');
     const isHttps = esUrl.startsWith('https://');
-
-    const client = isHttps ? https : http;
-
+    const esClient = isHttps ? https : http;
     const esAuth = getEnvVar('ELASTICSEARCH_USERNAME') + ':' + getEnvVar('ELASTICSEARCH_PASSWORD');
 
-    // Optional CA
+    // Optional CA for Elasticsearch
     let esCa = undefined;
     if (isHttps) {
       const caPath = getEnvVar('ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES', false);
-      if (caPath) {
-        esCa = fs.readFileSync(caPath);
-      }
+      if (caPath) esCa = fs.readFileSync(caPath);
     }
 
-    // Kubernetes API
+    // Kubernetes in-cluster API
     const k8sHost = process.env.KUBERNETES_SERVICE_HOST;
     const k8sPort = process.env.KUBERNETES_SERVICE_PORT_HTTPS;
     const namespace = "observability";
+    const secretName = "kibana-es-serviceaccount-token";
 
     const k8sToken = fs.readFileSync('/run/secrets/kubernetes.io/serviceaccount/token');
-    const k8sCa = fs.readFileSync('/run/secrets/kubernetes.io/serviceaccount/ca.crt');
+    const k8sCa   = fs.readFileSync('/run/secrets/kubernetes.io/serviceaccount/ca.crt');
 
     function request(url, options, body) {
+      const mod = url.startsWith('https://') ? https : http;
       return new Promise((resolve, reject) => {
-        const req = client.request(url, options, res => {
+        const req = mod.request(url, options, res => {
           let data = '';
           res.on('data', d => data += d);
           res.on('end', () => {
-            if (res.statusCode >= 200 && res.statusCode < 300) {
-              resolve(data);
-            } else {
-              reject(`Status: ${res.statusCode}, Body: ${data}`);
-            }
+            resolve({ status: res.statusCode, body: data });
           });
         });
-
         req.on('error', reject);
-
         if (body) req.write(body);
         req.end();
       });
     }
 
-    async function create() {
-      console.log("Deleting old token (if exists)");
-      await request(esUrl, { method: 'DELETE', auth: esAuth, ca: esCa }).catch(()=>{});
+    async function esRequest(method) {
+      const res = await request(esUrl, { method, auth: esAuth, ca: esCa });
+      if (res.status >= 200 && res.status < 300) return res.body;
+      if (res.status === 404 && method === 'DELETE') return null; // already gone — fine
+      throw new Error(`ES ${method} ${esUrl} → ${res.status}: ${res.body}`);
+    }
 
-      console.log("Creating new token");
-      const res = await request(esUrl, { method: 'POST', auth: esAuth, ca: esCa });
+    async function k8sSecretExists() {
+      const res = await request(
+        `https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets/${secretName}`,
+        { method: 'GET', headers: { Authorization: `Bearer ${k8sToken}` }, ca: k8sCa }
+      );
+      return res.status === 200;
+    }
 
-      const token = JSON.parse(res).token.value;
-
-      const secret = JSON.stringify({
+    async function createOrPatchK8sSecret(tokenValue) {
+      const payload = JSON.stringify({
         apiVersion: "v1",
         kind: "Secret",
-        metadata: { name: "kibana-es-token", namespace },
+        metadata: { name: secretName, namespace },
         type: "Opaque",
-        data: { token: Buffer.from(token).toString('base64') }
+        // key MUST match what the Kibana Deployment reads: "password"
+        data: { password: Buffer.from(tokenValue).toString('base64') }
       });
 
-      console.log("Creating K8s secret");
-      await request(
-        `https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${k8sToken}`,
-            'Content-Type': 'application/json'
-          },
-          ca: k8sCa
-        },
-        secret
-      );
+      const exists = await k8sSecretExists();
 
-      console.log("Done");
+      if (exists) {
+        console.log("Secret already exists — patching");
+        const res = await request(
+          `https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets/${secretName}`,
+          {
+            method: 'PATCH',
+            headers: {
+              Authorization: `Bearer ${k8sToken}`,
+              'Content-Type': 'application/strategic-merge-patch+json'
+            },
+            ca: k8sCa
+          },
+          payload
+        );
+        if (res.status < 200 || res.status >= 300)
+          throw new Error(`K8s PATCH secret → ${res.status}: ${res.body}`);
+      } else {
+        console.log("Creating K8s secret");
+        const res = await request(
+          `https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${k8sToken}`,
+              'Content-Type': 'application/json'
+            },
+            ca: k8sCa
+          },
+          payload
+        );
+        if (res.status < 200 || res.status >= 300)
+          throw new Error(`K8s POST secret → ${res.status}: ${res.body}`);
+      }
+    }
+
+    async function create() {
+      console.log("Deleting old ES service account token (if exists)");
+      await esRequest('DELETE'); // 404 is tolerated
+
+      console.log("Creating new ES service account token");
+      const raw = await esRequest('POST');
+      const token = JSON.parse(raw).token.value;
+
+      await createOrPatchK8sSecret(token);
+      console.log("Done — kibana-es-serviceaccount-token secret is ready");
     }
 
     async function clean() {
-      console.log("Deleting token from Elasticsearch");
-      await request(esUrl, { method: 'DELETE', auth: esAuth, ca: esCa });
+      console.log("Deleting ES service account token");
+      await esRequest('DELETE');
 
       console.log("Deleting K8s secret");
-      await request(
-        `https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets/kibana-es-token`,
+      const res = await request(
+        `https://${k8sHost}:${k8sPort}/api/v1/namespaces/${namespace}/secrets/${secretName}`,
         {
           method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${k8sToken}`
-          },
+          headers: { Authorization: `Bearer ${k8sToken}` },
           ca: k8sCa
         }
       );
+      if (res.status >= 200 && res.status < 300 || res.status === 404) {
+        console.log("Done");
+      } else {
+        throw new Error(`K8s DELETE secret → ${res.status}: ${res.body}`);
+      }
     }
 
     const cmd = process.argv[2];
-
     if (cmd === 'create') {
       create().catch(e => { console.error(e); process.exit(1); });
     } else if (cmd === 'clean') {
       clean().catch(e => { console.error(e); process.exit(1); });
     } else {
-      console.error("Unknown command");
+      console.error("Unknown command: " + cmd);
       process.exit(1);
     }

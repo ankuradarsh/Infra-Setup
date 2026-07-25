@@ -3,7 +3,12 @@ kind: Job
 metadata:
   name: create-kibana-token
   namespace: observability
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
+  backoffLimit: 3
   template:
     spec:
       serviceAccountName: kibana-token-sa
@@ -21,22 +26,15 @@ spec:
         - name: ELASTICSEARCH_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: elasticsearch-secret
+              name: kibana-token
               key: password
         - name: ELASTICSEARCH_URL
-          value: "http://elasticsearch.observability.svc.cluster.local:9200/_security/service/elastic/kibana/credential/token/kibana"
-        # - name: ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES
-        #   value: /usr/share/kibana/config/certs/ca.crt
+          value: "http://elasticsearch.observability.svc.cluster.local:9200/_security/service/elastic/kibana/credential/token/kibana-token"
         volumeMounts:
         - name: scripts
           mountPath: /helm-scripts
-        # - name: certs
-        #   mountPath: /usr/share/kibana/config/certs
       volumes:
       - name: scripts
         configMap:
           name: kibana-helm-scripts
           defaultMode: 0755
-      # - name: certs
-      #   secret:
-      #     secretName: elasticsearch-certs
