@@ -14,37 +14,6 @@ spec:
       labels:
         app: elasticsearch
     spec:
-      # Reset the elastic password from the secret before ES starts.
-      # This ensures the running password always matches the K8s secret,
-      # even after a secret rotation or a fresh PVC with existing data.
-      initContainers:
-        - name: reset-elastic-password
-          image: elastic/elasticsearch:9.1.7
-          command:
-            - /bin/bash
-            - -c
-            - |
-              set -e
-              echo "Starting temporary Elasticsearch to reset password..."
-              # Start ES in background, wait for it to be ready, reset password, then stop it.
-              # We use the keystore approach: write the password into the ES keystore so
-              # it is applied at next full start. This avoids needing a running ES node.
-              # Instead, use the direct file-based bootstrap password approach:
-              # Write the desired password to the bootstrap.password secure setting.
-              mkdir -p /usr/share/elasticsearch/config
-              echo "${ELASTIC_PASSWORD}" | /usr/share/elasticsearch/bin/elasticsearch-keystore add -f -x "bootstrap.password" 2>/dev/null || true
-              echo "Password keystore entry written."
-          env:
-            - name: ELASTIC_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: elasticsearch-credentials
-                  key: password
-          volumeMounts:
-            - name: elastic-data
-              mountPath: /usr/share/elasticsearch/data
-            - name: elastic-config
-              mountPath: /usr/share/elasticsearch/config
       containers:
         - name: elasticsearch
           image: elastic/elasticsearch:9.1.7
@@ -60,6 +29,8 @@ spec:
           env:
             - name: discovery.type
               value: single-node
+            # ELASTIC_PASSWORD is re-applied on every pod start by Elasticsearch 8+/9+.
+            # It keeps the running password in sync with the K8s secret automatically.
             - name: ELASTIC_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -68,11 +39,6 @@ spec:
           volumeMounts:
             - name: elastic-data
               mountPath: /usr/share/elasticsearch/data
-            - name: elastic-config
-              mountPath: /usr/share/elasticsearch/config
-      volumes:
-        - name: elastic-config
-          emptyDir: {}
   volumeClaimTemplates:
     - metadata:
         name: elastic-data
