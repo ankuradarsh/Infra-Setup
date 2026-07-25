@@ -13,28 +13,44 @@ spec:
     spec:
       serviceAccountName: kibana-token-sa
       restartPolicy: Never
+      initContainers:
+        # Wait for the ExternalSecret to be synced by ESO and the K8s secret
+        # to actually exist and be populated before the main container runs.
+        - name: wait-for-credentials
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for secret elasticsearch-credentials to be ready..."
+              until kubectl get secret elasticsearch-credentials -n observability \
+                    -o jsonpath='{.data.password}' 2>/dev/null | grep -q '.'; do
+                echo "  secret not ready yet, retrying in 5s..."
+                sleep 5
+              done
+              echo "Secret is ready."
       containers:
-      - name: create-token
-        image: node:20-alpine
-        command: ["node"]
-        args:
-          - /helm-scripts/manage-es-token.js
-          - create
-        env:
-        - name: ELASTICSEARCH_USERNAME
-          value: elastic
-        - name: ELASTICSEARCH_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: elasticsearch-credentials
-              key: password
-        - name: ELASTICSEARCH_URL
-          value: "http://elasticsearch.observability.svc.cluster.local:9200/_security/service/elastic/kibana/credential/token/kibana-token"
-        volumeMounts:
-        - name: scripts
-          mountPath: /helm-scripts
+        - name: create-token
+          image: node:20-alpine
+          command: ["node"]
+          args:
+            - /helm-scripts/manage-es-token.js
+            - create
+          env:
+            - name: ELASTICSEARCH_USERNAME
+              value: elastic
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elasticsearch-credentials
+                  key: password
+            - name: ELASTICSEARCH_URL
+              value: "http://elasticsearch.observability.svc.cluster.local:9200/_security/service/elastic/kibana/credential/token/kibana-token"
+          volumeMounts:
+            - name: scripts
+              mountPath: /helm-scripts
       volumes:
-      - name: scripts
-        configMap:
-          name: kibana-helm-scripts
-          defaultMode: 0755
+        - name: scripts
+          configMap:
+            name: kibana-helm-scripts
+            defaultMode: 0755

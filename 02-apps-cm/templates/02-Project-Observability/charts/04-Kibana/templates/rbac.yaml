@@ -3,12 +3,20 @@ kind: ServiceAccount
 metadata:
   name: kibana-token-sa
   namespace: observability
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: kibana-token-role
   namespace: observability
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation
 rules:
 - apiGroups: [""]
   resources: ["secrets"]
@@ -19,6 +27,10 @@ kind: RoleBinding
 metadata:
   name: kibana-token-binding
   namespace: observability
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-10"
+    "helm.sh/hook-delete-policy": before-hook-creation
 subjects:
 - kind: ServiceAccount
   name: kibana-token-sa
