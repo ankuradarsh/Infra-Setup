@@ -44,41 +44,77 @@ spec:
             - name: elastic-data
               mountPath: /usr/share/elasticsearch/data
 
-        # ── Password-sync sidecar ────────────────────────────────────────────
-        # Waits for ES to be ready, then uses the Change Password API to force
-        # the elastic user password to match the K8s secret on every pod start.
-        # Uses curl only — no JVM, no data-path lock conflict.
-        # Runs once and exits; the container restart policy is Never via the
-        # pod's restartPolicy but sidecars restart — so we sleep forever after
-        # success to avoid a restart loop.
+        # ── Password-sync + index-template sidecar ──────────────────────────
+        # On every pod start:
+        #   1. Waits for ES to be ready.
+        #   2. Syncs the elastic password from the K8s secret.
+        #   3. Registers a k8s-* component/index template with
+        #      number_of_replicas:0  so every new k8s-* index is green on a
+        #      single-node cluster (no unassignable replica shards).
+        #   4. Applies the same setting to any already-existing k8s-* indices
+        #      (covers indices created before this template existed).
+        #   5. Sleeps forever to avoid a restart loop.
         - name: password-sync
           image: curlimages/curl:8.7.1
           command:
             - /bin/sh
             - -c
             - |
+              ES="http://localhost:9200"
+              AUTH="-u elastic:${ELASTIC_PASSWORD}"
+
+              # ── 1. Wait for ES ────────────────────────────────────────────
               echo "Waiting for Elasticsearch to be ready..."
-              until curl -sf -u "elastic:${ELASTIC_PASSWORD}" \
-                   http://localhost:9200/_cluster/health >/dev/null 2>&1; do
+              until curl -sf $AUTH "${ES}/_cluster/health" >/dev/null 2>&1; do
                 sleep 5
               done
-              echo "Elasticsearch is up. Syncing password..."
+              echo "Elasticsearch is up."
+
+              # ── 2. Sync password ──────────────────────────────────────────
+              echo "Syncing elastic password..."
               HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-                -X PUT "http://localhost:9200/_security/user/elastic/_password" \
+                -X PUT "${ES}/_security/user/elastic/_password" \
                 -H "Content-Type: application/json" \
-                -u "elastic:${ELASTIC_PASSWORD}" \
+                $AUTH \
                 -d "{\"password\":\"${ELASTIC_PASSWORD}\"}")
               if [ "${HTTP_CODE}" = "200" ]; then
-                echo "Password already in sync (auth succeeded, reset confirmed)."
+                echo "Password in sync."
               elif [ "${HTTP_CODE}" = "401" ]; then
-                echo "Auth failed — password mismatch detected. Attempting unauthenticated reset..."
-                # ES 8+ allows resetting elastic via the enrollment token path when
-                # called from localhost without auth as a last-resort recovery.
-                curl -sf -X POST "http://localhost:9200/_security/user/elastic/_password" \
+                echo "Auth failed — attempting unauthenticated reset..."
+                curl -sf -X POST "${ES}/_security/user/elastic/_password" \
                   -H "Content-Type: application/json" \
                   -d "{\"password\":\"${ELASTIC_PASSWORD}\"}" || true
+              else
+                echo "Password sync returned HTTP ${HTTP_CODE} — continuing."
               fi
-              echo "Password sync complete. Sidecar sleeping."
+
+              # ── 3. Register index template: k8s-* → replicas=0 ───────────
+              # Priority 200 beats the built-in "logs" template (priority 100)
+              # and any Logstash-managed template (priority 1).
+              echo "Registering k8s-* index template (replicas=0)..."
+              curl -sf -X PUT "${ES}/_index_template/k8s-single-node" \
+                -H "Content-Type: application/json" \
+                $AUTH \
+                -d '{
+                  "index_patterns": ["k8s-*"],
+                  "priority": 200,
+                  "template": {
+                    "settings": {
+                      "number_of_replicas": 0
+                    }
+                  }
+                }' && echo "Template registered." || echo "Template registration failed (non-fatal)."
+
+              # ── 4. Patch existing k8s-* indices to replicas=0 ────────────
+              # Covers indices created before this template was in place.
+              echo "Patching existing k8s-* indices to replicas=0..."
+              curl -sf -X PUT "${ES}/k8s-*/_settings" \
+                -H "Content-Type: application/json" \
+                $AUTH \
+                -d '{"index":{"number_of_replicas":0}}' \
+                && echo "Existing indices patched." || echo "Patch failed (non-fatal, indices may not exist yet)."
+
+              echo "Sidecar setup complete. Sleeping."
               exec sleep infinity
           env:
             - name: ELASTIC_PASSWORD
